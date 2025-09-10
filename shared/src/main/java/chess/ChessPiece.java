@@ -2,6 +2,7 @@ package chess;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Represents a single chess piece
@@ -55,12 +56,13 @@ public class ChessPiece {
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
         ChessPiece piece = board.getPiece(myPosition);
-        java.util.List<ChessMove> movements = new java.util.ArrayList<>();
+        //Since imported only need to use List and ArrayList do not need to type java.util
+        List<ChessMove> movements = new ArrayList<>();
         if (piece.getPieceType() == PieceType.BISHOP) {
             int[][] directions = {{-1,-1}, {-1,1}, {1,-1}, {1,1}};
             for (int[] d : directions) {
-                int row = myPosition.getRow();
-                int col = myPosition.getColumn();
+                int row = myPosition.getRow() + d[0];
+                int col = myPosition.getColumn() + d[1];
 
                 while (row >= 1 && row <= 8 && col >= 1 && col <= 8){
                     movements.add(new ChessMove(myPosition, new ChessPosition(row, col), null));
@@ -86,7 +88,7 @@ public class ChessPiece {
         if (piece.getPieceType() == PieceType.ROOK) {
             int[][] directions = {{1,0}, {-1,0}, {0,-1},{0,1}};
             for (int[] d : directions) {
-                //have to add + d[0] and d[1] to not add teh start square as a move in any direction. why do I not need to do that for BISHOP?
+                //have to add + d[0] and d[1] to not add the start square as a move in any direction
                 int row = myPosition.getRow() + d[0];
                 int col = myPosition.getColumn() + d[1];
 
@@ -97,7 +99,34 @@ public class ChessPiece {
                 }
             }
         }
-        
+        if (piece.getPieceType() == PieceType.PAWN) {
+            int[][] directions = {{2,0}, {1,0}, {1,-1},{1,1}};
+            int row0 = myPosition.getRow();
+            int col0 = myPosition.getColumn();
+            for (int[] d : directions) {
+                int row = row0 + d[0];
+                int col = col0 + d[1];
+
+                if (row >= 1 && row <= 8 && col >= 1 && col <= 8) {
+                    movements.add(new ChessMove(myPosition, new ChessPosition(row, col), null));
+                }
+            }
+        }
+
+        if (piece.getPieceType() == PieceType.QUEEN) {
+            int[][] directions = {{1,0}, {0,1}, {-1,0}, {0,-1}, {1,1}, {1,-1}, {-1,-1}, {-1,1}};
+            for (int[] d : directions) {
+                //have to add + d[0] and d[1] to not add the start square as a move in any direction
+                int row = myPosition.getRow() + d[0];
+                int col = myPosition.getColumn() + d[1];
+
+                while (row >= 1 && row <= 8 && col >= 1 && col <= 8){
+                    movements.add(new ChessMove(myPosition, new ChessPosition(row, col), null));
+                    row += d[0];
+                    col += d[1];
+                }
+            }
+        }
 
         return movements;
     }
