@@ -128,6 +128,20 @@ public class ChessPiece {
             }
         }
 
+        if (piece.getPieceType() ==PieceType.KING) {
+            int[][] directions = {{1,0}, {0,1}, {-1,0}, {0,-1}, {1,1}, {1,-1}, {-1,-1}, {-1,1}};
+            int row0 = myPosition.getRow();
+            int col0 = myPosition.getColumn();
+            for (int[] d : directions) {
+                int row = row0 + d[0];
+                int col = col0 + d[1];
+
+                if (row >= 1 && row <= 8 && col >= 1 && col <= 8) {
+                    movements.add(new ChessMove(myPosition, new ChessPosition(row, col), null));
+                }
+            }
+        }
+
         return movements;
     }
 }
