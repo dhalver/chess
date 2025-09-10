@@ -83,6 +83,22 @@ public class ChessPiece {
                 }
             }
         }
+        if (piece.getPieceType() == PieceType.ROOK) {
+            int[][] directions = {{1,0}, {-1,0}, {0,-1},{0,1}};
+            for (int[] d : directions) {
+                //have to add + d[0] and d[1] to not add teh start square as a move in any direction. why do I not need to do that for BISHOP?
+                int row = myPosition.getRow() + d[0];
+                int col = myPosition.getColumn() + d[1];
+
+                while (row >= 1 && row <= 8 && col >= 1 && col <= 8){
+                    movements.add(new ChessMove(myPosition, new ChessPosition(row, col), null));
+                    row += d[0];
+                    col += d[1];
+                }
+            }
+        }
+        
+
         return movements;
     }
 }
