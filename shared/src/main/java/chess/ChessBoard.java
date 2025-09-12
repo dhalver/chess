@@ -55,6 +55,36 @@ public class ChessBoard {
      * (How the game of chess normally starts)
      */
     public void resetBoard() {
-        throw new RuntimeException("Not implemented");
+        // clear
+        for (int r = 0; r < 8; r++) {
+            Arrays.fill(squares[r], null);
+        }
+
+        // standard setup
+        var W = ChessGame.TeamColor.WHITE;
+        var B = ChessGame.TeamColor.BLACK;
+
+        // pawns
+        for (int c = 1; c <= 8; c++) {
+            addPiece(new ChessPosition(2, c), new ChessPiece(W, ChessPiece.PieceType.PAWN));
+            addPiece(new ChessPosition(7, c), new ChessPiece(B, ChessPiece.PieceType.PAWN));
+        }
+
+        // back ranks (left→right: R N B Q K B N R)
+        ChessPiece.PieceType[] order = {
+                ChessPiece.PieceType.ROOK,
+                ChessPiece.PieceType.KNIGHT,
+                ChessPiece.PieceType.BISHOP,
+                ChessPiece.PieceType.QUEEN,
+                ChessPiece.PieceType.KING,
+                ChessPiece.PieceType.BISHOP,
+                ChessPiece.PieceType.KNIGHT,
+                ChessPiece.PieceType.ROOK
+        };
+
+        for (int c = 1; c <= 8; c++) {
+            addPiece(new ChessPosition(1, c), new ChessPiece(W, order[c - 1]));
+            addPiece(new ChessPosition(8, c), new ChessPiece(B, order[c - 1]));
+        }
     }
 }
