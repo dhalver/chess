@@ -24,8 +24,29 @@ public class ChessBoard {
     }
 
     ChessPiece[][] squares = new ChessPiece[8][8];
+
+    // Remove whatever piece is on this square (used by makeMove/applyMove).
+    public void removePiece(ChessPosition position) {
+        squares[position.getRow() - 1][position.getColumn() - 1] = null;
+    }
+
+    /**
+     * Deep-copy all pieces from another board into this one.
+     * Used to simulate "what-if" moves when filtering out self-check.
+     */
+    public void copyFrom(ChessBoard other) {
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                ChessPiece src = other.squares[r][c];
+                squares[r][c] = (src == null)
+                        ? null
+                        : new ChessPiece(src.getTeamColor(), src.getPieceType());
+            }
+        }
+    }
+
     public ChessBoard() {
-        
+
     }
 
     /**
@@ -87,4 +108,6 @@ public class ChessBoard {
             addPiece(new ChessPosition(8, c), new ChessPiece(B, order[c - 1]));
         }
     }
+
+
 }
