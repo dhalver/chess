@@ -68,8 +68,100 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        throw new RuntimeException("Not implemented");
+        ChessPiece piece = board.getPiece(startPosition);
+        if (piece == null) {
+            return null;
+        }
+        var pseudo = piece.pieceMoves(board, startPosition);
+
+        var legal = new java.util.ArrayList<ChessMove>();
+        for (ChessMove mv : pseudo) {
+            ChessBoard b2 = copyBoard(board);
+            applyMove(b2, mv);
+            ChessPosition myKing = findKing(b2, piece.getTeamColor());
+            TeamColor opp = (piece.getTeamColor()==TeamColor.WHITE)? TeamColor.BLACK : TeamColor.WHITE;
+            if (!isSquareAttacked(b2, myKing, opp)) {
+                legal.add(mv);
+            }
+        }
+        return legal;
     }
+
+    private ChessBoard copyBoard(ChessBoard original) {
+        ChessBoard c = new ChessBoard();
+        c.copyFrom(original);
+        return c;
+    }
+
+    private void applyMove(ChessBoard b, ChessMove move) {
+        ChessPosition s = move.getStartPosition();
+        ChessPosition e = move.getEndPosition();
+        ChessPiece moving = b.getPiece(s);
+
+        if (move.getPromotionPiece() != null) {
+            // Promotion: replace the pawn with the promoted type on the end square.
+            b.addPiece(e, new ChessPiece(moving.getTeamColor(), move.getPromotionPiece()));
+            b.removePiece(s);
+        } else {
+            // Normal move or capture: overwrite destination, clear start.
+            b.addPiece(e, moving);
+            b.removePiece(s);
+        }
+    }
+
+    private ChessPosition findKing(ChessBoard b, TeamColor side) {
+        for (int r=1; r<=8; r++) for (int c=1; c<=8; c++) {
+            var p = new ChessPosition(r,c);
+            var pc = b.getPiece(p);
+            if (pc!=null && pc.getPieceType()==ChessPiece.PieceType.KING && pc.getTeamColor()==side) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    private boolean isSquareAttacked(ChessBoard b, ChessPosition square, TeamColor byTeam) {
+        for (int r=1; r<=8; r++) for (int c=1; c<=8; c++) {
+            var from = new ChessPosition(r,c);
+            var pc = b.getPiece(from);
+            if (pc==null || pc.getTeamColor()!=byTeam) continue;
+            if (attacks(b, from, square, pc)) return true;
+        }
+        return false;
+    }
+
+    private boolean attacks(ChessBoard b, ChessPosition from, ChessPosition to, ChessPiece pc) {
+        int dr = to.getRow() - from.getRow();
+        int dc = to.getColumn() - from.getColumn();
+        int adr = Math.abs(dr), adc = Math.abs(dc);
+
+        switch (pc.getPieceType()) {
+            case PAWN -> {
+                int dir = (pc.getTeamColor()==TeamColor.WHITE)? +1 : -1;
+                return dr==dir && (dc==1 || dc==-1);
+            }
+            case KNIGHT -> { return (adr==2 && adc==1) || (adr==1 && adc==2); }
+            case KING   -> { return Math.max(adr,adc)==1; }
+            case BISHOP -> { return (adr==adc && adr>0) && clearRay(b, from, dr, dc); }
+            case ROOK   -> { return ((adr==0 && adc>0) || (adc==0 && adr>0)) && clearRay(b, from, dr, dc); }
+            case QUEEN  -> { return ((adr==adc) || adr==0 || adc==0) && clearRay(b, from, dr, dc); }
+        }
+        return false;
+    }
+
+    /** True if every square strictly between from and to along the line of motion is empty. */
+    private boolean clearRay(ChessBoard b, ChessPosition from, int dr, int dc) {
+        int stepR = Integer.compare(dr, 0);
+        int stepC = Integer.compare(dc, 0);
+        int r = from.getRow() + stepR, c = from.getColumn() + stepC;
+        int endR = from.getRow() + dr,   endC = from.getColumn() + dc;
+        while (r != endR || c != endC) {
+            if (b.getPiece(new ChessPosition(r,c)) != null) return false;
+            r += stepR; c += stepC;
+        }
+        return true;
+    }
+    
 
     /**
      * Makes a move in a chess game
