@@ -161,6 +161,19 @@ public class ChessGame {
         }
         return true;
     }
+
+    private boolean hasAnyLegalMove(TeamColor team) {
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition p = new ChessPosition(r, c);
+                ChessPiece pc = board.getPiece(p);
+                if (pc == null || pc.getTeamColor() != team) continue;
+                var vm = validMoves(p);
+                if (vm != null && !vm.isEmpty()) return true;
+            }
+        }
+        return false;
+    }
     
 
     /**
@@ -192,7 +205,10 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        ChessPosition king = findKing(board, teamColor);
+        if (king == null) return false; // defensive
+        TeamColor enemy = (teamColor == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
+        return isSquareAttacked(board, king, enemy);
     }
 
     /**
@@ -202,7 +218,7 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        return isInCheck(teamColor) && !hasAnyLegalMove(teamColor);
     }
 
     /**
@@ -213,7 +229,7 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        return !isInCheck(teamColor) && !hasAnyLegalMove(teamColor);
     }
 
     /**
