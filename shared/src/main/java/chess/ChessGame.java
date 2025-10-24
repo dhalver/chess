@@ -60,6 +60,7 @@ public class ChessGame {
         return Objects.hash(board, teamTurn);
     }
 
+
     /**
      * Gets a valid moves for a piece at the given location
      *
@@ -121,11 +122,13 @@ public class ChessGame {
     }
 
     private boolean isSquareAttacked(ChessBoard b, ChessPosition square, TeamColor byTeam) {
-        for (int r=1; r<=8; r++) for (int c=1; c<=8; c++) {
-            var from = new ChessPosition(r,c);
-            var pc = b.getPiece(from);
-            if (pc==null || pc.getTeamColor()!=byTeam) continue;
-            if (attacks(b, from, square, pc)) return true;
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                ChessPosition from = new ChessPosition(r, c);
+                ChessPiece pc = b.getPiece(from);
+                if (pc == null || pc.getTeamColor() != byTeam) continue;
+                if (attacks(b, from, square, pc)) return true;
+            }
         }
         return false;
     }
