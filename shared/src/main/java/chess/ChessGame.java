@@ -139,15 +139,25 @@ public class ChessGame {
         int adr = Math.abs(dr), adc = Math.abs(dc);
 
         switch (pc.getPieceType()) {
-            case PAWN -> {
-                int dir = (pc.getTeamColor()==TeamColor.WHITE)? +1 : -1;
-                return dr==dir && (dc==1 || dc==-1);
+            case PAWN: {
+                int dir = (pc.getTeamColor() == TeamColor.WHITE) ? 1 : -1;
+                // pawns attack diagonally one step forward
+                return dr == dir && adc == 1;
             }
-            case KNIGHT -> { return (adr==2 && adc==1) || (adr==1 && adc==2); }
-            case KING   -> { return Math.max(adr,adc)==1; }
-            case BISHOP -> { return (adr==adc && adr>0) && clearRay(b, from, dr, dc); }
-            case ROOK   -> { return ((adr==0 && adc>0) || (adc==0 && adr>0)) && clearRay(b, from, dr, dc); }
-            case QUEEN  -> { return ((adr==adc) || adr==0 || adc==0) && clearRay(b, from, dr, dc); }
+            case KNIGHT:
+                return (adr == 2 && adc == 1) || (adr == 1 && adc == 2);
+
+            case KING:
+                return Math.max(adr, adc) == 1;
+
+            case BISHOP:
+                return adr == adc && adr > 0 && clearRay(b, from, dr, dc);
+
+            case ROOK:
+                return ((adr == 0 && adc > 0) || (adc == 0 && adr > 0)) && clearRay(b, from, dr, dc);
+
+            case QUEEN:
+                return ((adr == adc) || adr == 0 || adc == 0) && clearRay(b, from, dr, dc);
         }
         return false;
     }
