@@ -166,11 +166,15 @@ public class ChessGame {
     private boolean clearRay(ChessBoard b, ChessPosition from, int dr, int dc) {
         int stepR = Integer.compare(dr, 0);
         int stepC = Integer.compare(dc, 0);
-        int r = from.getRow() + stepR, c = from.getColumn() + stepC;
-        int endR = from.getRow() + dr,   endC = from.getColumn() + dc;
-        while (r != endR || c != endC) {
-            if (b.getPiece(new ChessPosition(r,c)) != null) return false;
-            r += stepR; c += stepC;
+
+        int steps = Math.max(Math.abs(dr), Math.abs(dc)) - 1;
+        int r = from.getRow();
+        int c = from.getColumn();
+
+        for (int i = 0; i < steps; i++) {
+            r += stepR;
+            c += stepC;
+            if (b.getPiece(new ChessPosition(r, c)) != null) return false;
         }
         return true;
     }
