@@ -100,9 +100,8 @@ public class ChessGame {
         ChessPiece moving = b.getPiece(s);
 
         if (move.getPromotionPiece() != null) {
-            // Promotion: replace the pawn with the promoted type on the end square.
-            b.addPiece(e, new ChessPiece(moving.getTeamColor(), move.getPromotionPiece()));
             b.removePiece(s);
+            b.addPiece(e, new ChessPiece(moving.getTeamColor(), move.getPromotionPiece()));
         } else {
             // Normal move or capture: overwrite destination, clear start.
             b.addPiece(e, moving);
@@ -180,14 +179,15 @@ public class ChessGame {
     }
 
     private boolean hasAnyLegalMove(TeamColor team) {
-        for (int r = 1; r <= 8; r++) {
-            for (int c = 1; c <= 8; c++) {
-                ChessPosition p = new ChessPosition(r, c);
-                ChessPiece pc = board.getPiece(p);
-                if (pc == null || pc.getTeamColor() != team) continue;
-                var vm = validMoves(p);
-                if (vm != null && !vm.isEmpty()) return true;
-            }
+        for (int idx = 0; idx < 64; idx++) {
+            int r = (idx / 8) + 1;
+            int c = (idx % 8) + 1;
+            ChessPosition p = new ChessPosition(r, c);
+            ChessPiece pc = board.getPiece(p);
+            if (pc == null || pc.getTeamColor() != team) continue;
+
+            var vm = validMoves(p);
+            if (vm != null && !vm.isEmpty()) return true;
         }
         return false;
     }
