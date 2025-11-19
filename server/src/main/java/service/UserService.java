@@ -36,4 +36,20 @@ public class UserService {
         }
     }
 
+    public AuthData login(String username, String password) throws ServiceException {
+        try {
+            UserData user = dataAccess.getUser(username);
+
+            if (user == null || !user.password().equals(password)) {
+                throw new ServiceException("Unauthorized");
+            }
+
+            AuthData auth = new AuthData(java.util.UUID.randomUUID().toString(), username);
+            dataAccess.createAuth(auth);
+            return auth;
+
+        } catch (DataAccessException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
 }
