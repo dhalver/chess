@@ -52,4 +52,16 @@ public class UserService {
             throw new ServiceException(e.getMessage());
         }
     }
+
+    public void logout(String authToken) throws ServiceException {
+        try {
+            var auth = dataAccess.getAuth(authToken);
+            if (auth == null) {
+                throw new ServiceException("Unauthorized");
+            }
+            dataAccess.deleteAuth(authToken);
+        } catch (DataAccessException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
 }
