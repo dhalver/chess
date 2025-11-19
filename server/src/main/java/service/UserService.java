@@ -12,4 +12,28 @@ public class UserService {
     public UserService(DataAccess dataAccess) {
         this.dataAccess = dataAccess;
     }
+
+    public AuthData register(String username, String password, String email) throws ServiceException {
+        try {
+            if (username == null || password == null || email == null ||
+                    username.isBlank() || password.isBlank() || email.isBlank()) {
+                throw new ServiceException("Bad Request");
+            }
+
+            if (dataAccess.getUser(username) != null) {
+                throw new ServiceException("Already Taken");
+            }
+
+            UserData user = new UserData(username, password, email);
+            dataAccess.createUser(user);
+
+            AuthData auth = new AuthData(java.util.UUID.randomUUID().toString(), username);
+            dataAccess.createAuth(auth);
+            return auth;
+
+        } catch (DataAccessException e) {
+            throw new ServiceException(e.getMessage());
+        }
+    }
+
 }
