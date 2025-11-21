@@ -54,18 +54,17 @@ public class Server {
         javalin.put("/game", this::handleJoinGame);
     }
 
-
+    // DELETE /db
     private void handleClear(Context ctx) {
         try {
             clearService.clear();
             ctx.status(200);
-            ctx.json(Map.of());
+            ctx.json(Map.of());  // {}
         } catch (ServiceException e) {
             ctx.status(500);
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
-
 
     /** POST /user  (register) */
     private void handleRegister(Context ctx) {
@@ -84,11 +83,11 @@ public class Server {
             ));
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
-
+    // POST /session (login)
     private void handleLogin(Context ctx) {
         try {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
@@ -104,10 +103,11 @@ public class Server {
             ));
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
+    // DELETE /session (logout)
     private void handleLogout(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -116,11 +116,11 @@ public class Server {
             ctx.json(Map.of()); // {}
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
-
+    // POST /game
     private void handleCreateGame(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -130,10 +130,11 @@ public class Server {
             ctx.status(200).json(new CreateGameResponse(game.gameID()));
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
+    // GET /game
     private void handleListGames(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -141,10 +142,11 @@ public class Server {
             ctx.status(200).json(new ListGamesResponse(games));
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
+    // PUT /game
     private void handleJoinGame(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -160,13 +162,12 @@ public class Server {
             ctx.status(200).json(Map.of()); // {}
         } catch (IllegalArgumentException e) {
             // bad playerColor string
-            ctx.status(400).json(Map.of("message", "Error: Bad Request"));
+            ctx.status(400).json(new ErrorResponse("Error: Bad Request"));
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
-            ctx.json(Map.of("message", "Error: " + e.getMessage()));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
-
 
     private int mapStatus(ServiceException e) {
         return switch (e.getMessage()) {

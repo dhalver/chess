@@ -38,6 +38,12 @@ public class UserService {
 
     public AuthData login(String username, String password) throws ServiceException {
         try {
+            // *** validate login input: bad/missing fields => 400 Bad Request ***
+            if (username == null || password == null ||
+                    username.isBlank() || password.isBlank()) {
+                throw new ServiceException("Bad Request");
+            }
+
             UserData user = dataAccess.getUser(username);
 
             if (user == null || !user.password().equals(password)) {
