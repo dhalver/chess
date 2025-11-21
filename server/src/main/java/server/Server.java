@@ -58,7 +58,6 @@ public class Server {
         javalin.put("/game", this::handleJoinGame);
     }
 
-    // DELETE /db
     private void handleClear(Context ctx) {
         try {
             clearService.clear();
@@ -69,7 +68,6 @@ public class Server {
         }
     }
 
-    // POST /user (register)
     private void handleRegister(Context ctx) {
         try {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
@@ -89,7 +87,6 @@ public class Server {
         }
     }
 
-    // POST /session (login)
     private void handleLogin(Context ctx) {
         try {
             Map<String, Object> body = ctx.bodyAsClass(Map.class);
@@ -108,7 +105,6 @@ public class Server {
         }
     }
 
-    // DELETE /session (logout)
     private void handleLogout(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -120,7 +116,6 @@ public class Server {
         }
     }
 
-    // POST /game
     private void handleCreateGame(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
@@ -134,13 +129,11 @@ public class Server {
         }
     }
 
-    // GET /game
     private void handleListGames(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
             Collection<GameData> games = gameService.listGames(authToken);
 
-            // Strip out the ChessGame so Jackson does not choke
             List<GameSummary> summaries = games.stream()
                     .map(g -> new GameSummary(
                             g.gameID(),
@@ -156,33 +149,36 @@ public class Server {
         }
     }
 
-    // PUT /game
     private void handleJoinGame(Context ctx) {
         try {
             String authToken = ctx.header("authorization");
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
 
-            // For the passoff tests, playerColor MUST be provided and valid.
-            String colorStr = req.playerColor();
-            if (colorStr == null) {
-                throw new ServiceException("Bad Request");
+            if (req.gameID() == null) {
+                ctx.status(400).json(new ErrorResponse("Error: Bad Request"));
+                return;
             }
 
-            ChessGame.TeamColor color;
-            try {
-                color = ChessGame.TeamColor.valueOf(colorStr);
-            } catch (IllegalArgumentException ex) {
-                // Covers things like "GREEN"
-                throw new ServiceException("Bad Request");
+            ChessGame.TeamColor color = null;
+
+            if (req.playerColor() != null) {
+                try {
+                    color = ChessGame.TeamColor.valueOf(req.playerColor());
+                } catch (Exception e) {
+                    ctx.status(400).json(new ErrorResponse("Error: Bad Request"));
+                    return;
+                }
             }
 
             gameService.joinGame(authToken, color, req.gameID());
             ctx.status(200).json(Map.of());
+
         } catch (ServiceException e) {
             ctx.status(mapStatus(e));
             ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
 
     private int mapStatus(ServiceException e) {
         return switch (e.getMessage()) {

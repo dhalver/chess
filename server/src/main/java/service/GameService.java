@@ -64,6 +64,10 @@ public class GameService {
                 throw new ServiceException("Bad Request");
             }
 
+            if (playerColor == null) {
+                throw new ServiceException("Bad Request");
+            }
+
             String white = game.whiteUsername();
             String black = game.blackUsername();
 
@@ -72,11 +76,15 @@ public class GameService {
                     throw new ServiceException("Already Taken");
                 }
                 game = new GameData(game.gameID(), username, black, game.gameName(), game.game());
+
             } else if (playerColor == ChessGame.TeamColor.BLACK) {
                 if (black != null && !black.equals(username)) {
                     throw new ServiceException("Already Taken");
                 }
                 game = new GameData(game.gameID(), white, username, game.gameName(), game.game());
+
+            } else {
+                throw new ServiceException("Bad Request");
             }
 
             dataAccess.updateGame(game);
@@ -85,3 +93,4 @@ public class GameService {
         }
     }
 }
+
