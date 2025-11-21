@@ -2,8 +2,10 @@ package service;
 
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
-import model.UserData;
 import model.AuthData;
+import model.UserData;
+
+import java.util.UUID;
 
 public class UserService {
 
@@ -13,10 +15,13 @@ public class UserService {
         this.dataAccess = dataAccess;
     }
 
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
     public AuthData register(String username, String password, String email) throws ServiceException {
         try {
-            if (username == null || password == null || email == null ||
-                    username.isBlank() || password.isBlank() || email.isBlank()) {
+            if (isBlank(username) || isBlank(password) || isBlank(email)) {
                 throw new ServiceException("Bad Request");
             }
 
@@ -27,7 +32,7 @@ public class UserService {
             UserData user = new UserData(username, password, email);
             dataAccess.createUser(user);
 
-            AuthData auth = new AuthData(java.util.UUID.randomUUID().toString(), username);
+            AuthData auth = new AuthData(UUID.randomUUID().toString(), username);
             dataAccess.createAuth(auth);
             return auth;
 
@@ -38,19 +43,16 @@ public class UserService {
 
     public AuthData login(String username, String password) throws ServiceException {
         try {
-            // *** validate login input: bad/missing fields => 400 Bad Request ***
-            if (username == null || password == null ||
-                    username.isBlank() || password.isBlank()) {
+            if (isBlank(username) || isBlank(password)) {
                 throw new ServiceException("Bad Request");
             }
 
             UserData user = dataAccess.getUser(username);
-
             if (user == null || !user.password().equals(password)) {
                 throw new ServiceException("Unauthorized");
             }
 
-            AuthData auth = new AuthData(java.util.UUID.randomUUID().toString(), username);
+            AuthData auth = new AuthData(UUID.randomUUID().toString(), username);
             dataAccess.createAuth(auth);
             return auth;
 
@@ -71,3 +73,4 @@ public class UserService {
         }
     }
 }
+
