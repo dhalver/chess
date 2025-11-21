@@ -152,6 +152,12 @@ public class Server {
             String authToken = ctx.header("authorization");
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
 
+            // *** NEW: handle missing gameID as 400 Bad Request instead of 500 ***
+            if (req.gameID() == null) {
+                ctx.status(400).json(new ErrorResponse("Error: Bad Request"));
+                return;
+            }
+
             ChessGame.TeamColor color = null;
             if (req.playerColor() != null) {
                 // tests send "WHITE" or "BLACK"
