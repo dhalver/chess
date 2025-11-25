@@ -24,7 +24,6 @@ public class InMemoryDataAccess implements DataAccess {
         nextGameID = 1;
     }
 
-
     @Override
     public void createUser(UserData user) throws DataAccessException {
         if (users.containsKey(user.username())) {
@@ -37,7 +36,6 @@ public class InMemoryDataAccess implements DataAccess {
     public UserData getUser(String username) {
         return users.get(username);
     }
-
 
     @Override
     public void createAuth(AuthData auth) {
@@ -54,11 +52,10 @@ public class InMemoryDataAccess implements DataAccess {
         auths.remove(authToken);
     }
 
-
     @Override
     public int createGame(String gameName) {
         int id = nextGameID++;
-        var game = new GameData(id, null, null, gameName, new ChessGame());
+        GameData game = new GameData(id, null, null, gameName, new ChessGame());
         games.put(id, game);
         return id;
     }

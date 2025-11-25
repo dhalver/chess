@@ -1,8 +1,8 @@
 package dataaccess;
 
-import model.UserData;
-import model.GameData;
 import model.AuthData;
+import model.GameData;
+import model.UserData;
 
 import java.util.Collection;
 
@@ -22,3 +22,4 @@ public interface DataAccess {
     Collection<GameData> listGames() throws DataAccessException;
     void updateGame(GameData game) throws DataAccessException;
 }
+

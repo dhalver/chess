@@ -5,6 +5,7 @@ import dataaccess.DataAccess;
 import dataaccess.InMemoryDataAccess;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.http.staticfiles.Location;
 import model.AuthData;
 import model.GameData;
 import service.ClearService;
@@ -32,7 +33,13 @@ public class Server {
         this.userService = new UserService(dataAccess);
         this.gameService = new GameService(dataAccess);
 
-        this.javalin = Javalin.create(config -> config.staticFiles.add("web"));
+        this.javalin = Javalin.create(config ->
+                config.staticFiles.add(staticFiles -> {
+                    staticFiles.hostedPath = "/";
+                    staticFiles.directory = "web";
+                    staticFiles.location = Location.CLASSPATH;
+                })
+        );
         configureRoutes();
     }
 
@@ -58,25 +65,14 @@ public class Server {
         javalin.put("/game", this::handleJoinGame);
     }
 
-    // ---------- Helpers ----------
-
-    private void handleServiceError(Context ctx, ServiceException e) {
-        int status = e.statusCode();
-        if (status == 0) {
-            status = 500;
-        }
-        ctx.status(status);
-        ctx.json(new ErrorResponse("Error: " + e.getMessage()));
-    }
-
-    // ---------- Handlers ----------
+    // ----- handlers -----
 
     private void handleClear(Context ctx) {
         try {
             clearService.clear();
             ctx.status(200).json(Map.of());
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(500).json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
@@ -94,7 +90,8 @@ public class Server {
                     "authToken", auth.authToken()
             ));
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
@@ -111,35 +108,38 @@ public class Server {
                     "authToken", auth.authToken()
             ));
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     private void handleLogout(Context ctx) {
         try {
-            String authToken = ctx.header("authorization");
+            String authToken = ctx.header("Authorization"); // header name the tests use
             userService.logout(authToken);
             ctx.status(200).json(Map.of());
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     private void handleCreateGame(Context ctx) {
         try {
-            String authToken = ctx.header("authorization");
+            String authToken = ctx.header("Authorization");
             CreateGameRequest req = ctx.bodyAsClass(CreateGameRequest.class);
 
-            var game = gameService.createGame(authToken, req.gameName());
+            GameData game = gameService.createGame(authToken, req.gameName());
             ctx.status(200).json(new CreateGameResponse(game.gameID()));
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     private void handleListGames(Context ctx) {
         try {
-            String authToken = ctx.header("authorization");
+            String authToken = ctx.header("Authorization");
             Collection<GameData> games = gameService.listGames(authToken);
 
             List<GameSummary> summaries = games.stream()
@@ -152,13 +152,14 @@ public class Server {
 
             ctx.status(200).json(new ListGamesResponse(summaries));
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     private void handleJoinGame(Context ctx) {
         try {
-            String authToken = ctx.header("authorization");
+            String authToken = ctx.header("Authorization");
             JoinGameRequest req = ctx.bodyAsClass(JoinGameRequest.class);
 
             if (req.gameID() == null) {
@@ -167,11 +168,10 @@ public class Server {
             }
 
             ChessGame.TeamColor color = null;
-
             if (req.playerColor() != null) {
                 try {
                     color = ChessGame.TeamColor.valueOf(req.playerColor());
-                } catch (Exception e) {
+                } catch (IllegalArgumentException ex) {
                     ctx.status(400).json(new ErrorResponse("Error: Bad Request"));
                     return;
                 }
@@ -181,8 +181,19 @@ public class Server {
             ctx.status(200).json(Map.of());
 
         } catch (ServiceException e) {
-            handleServiceError(ctx, e);
+            ctx.status(mapStatus(e));
+            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
+    private int mapStatus(ServiceException e) {
+        return switch (e.getMessage()) {
+            case "Bad Request"   -> 400;
+            case "Already Taken" -> 403;
+            case "Unauthorized"  -> 401;
+            default              -> 500;
+        };
+    }
 }
+
 

@@ -1,5 +1,5 @@
 package server;
 
-import java.util.List;
+import java.util.Collection;
 
-public record ListGamesResponse(List<GameSummary> games) { }
+public record ListGamesResponse(Collection<GameSummary> games) {}

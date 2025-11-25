@@ -15,7 +15,7 @@ public class ClearService {
         try {
             dataAccess.clear();
         } catch (DataAccessException e) {
-            throw new ServiceException(500, "Internal Server Error");
+            throw new ServiceException(e.getMessage());
         }
     }
 }
