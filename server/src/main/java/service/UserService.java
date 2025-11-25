@@ -22,11 +22,11 @@ public class UserService {
     public AuthData register(String username, String password, String email) throws ServiceException {
         try {
             if (isBlank(username) || isBlank(password) || isBlank(email)) {
-                throw new ServiceException("Bad Request");
+                throw new ServiceException(400, "Bad Request");
             }
 
             if (dataAccess.getUser(username) != null) {
-                throw new ServiceException("Already Taken");
+                throw new ServiceException(403, "Already Taken");
             }
 
             UserData user = new UserData(username, password, email);
@@ -37,19 +37,19 @@ public class UserService {
             return auth;
 
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 
     public AuthData login(String username, String password) throws ServiceException {
         try {
             if (isBlank(username) || isBlank(password)) {
-                throw new ServiceException("Bad Request");
+                throw new ServiceException(400, "Bad Request");
             }
 
             UserData user = dataAccess.getUser(username);
             if (user == null || !user.password().equals(password)) {
-                throw new ServiceException("Unauthorized");
+                throw new ServiceException(401, "Unauthorized");
             }
 
             AuthData auth = new AuthData(UUID.randomUUID().toString(), username);
@@ -57,7 +57,7 @@ public class UserService {
             return auth;
 
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 
@@ -65,11 +65,12 @@ public class UserService {
         try {
             var auth = dataAccess.getAuth(authToken);
             if (auth == null) {
-                throw new ServiceException("Unauthorized");
+                throw new ServiceException(401, "Unauthorized");
             }
+
             dataAccess.deleteAuth(authToken);
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 }

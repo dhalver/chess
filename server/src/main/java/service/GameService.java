@@ -20,11 +20,11 @@ public class GameService {
         try {
             var auth = dataAccess.getAuth(authToken);
             if (auth == null) {
-                throw new ServiceException("Unauthorized");
+                throw new ServiceException(401, "Unauthorized");
             }
             return auth;
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 
@@ -32,14 +32,14 @@ public class GameService {
         requireAuth(authToken);
 
         if (gameName == null || gameName.isBlank()) {
-            throw new ServiceException("Bad Request");
+            throw new ServiceException(400, "Bad Request");
         }
 
         try {
             int id = dataAccess.createGame(gameName);
             return dataAccess.getGame(id);
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 
@@ -48,7 +48,7 @@ public class GameService {
         try {
             return dataAccess.listGames();
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 
@@ -61,11 +61,11 @@ public class GameService {
         try {
             GameData game = dataAccess.getGame(gameID);
             if (game == null) {
-                throw new ServiceException("Bad Request");
+                throw new ServiceException(400, "Bad Request");
             }
 
             if (playerColor == null) {
-                throw new ServiceException("Bad Request");
+                throw new ServiceException(400, "Bad Request");
             }
 
             String white = game.whiteUsername();
@@ -73,24 +73,25 @@ public class GameService {
 
             if (playerColor == ChessGame.TeamColor.WHITE) {
                 if (white != null && !white.equals(username)) {
-                    throw new ServiceException("Already Taken");
+                    throw new ServiceException(403, "Already Taken");
                 }
                 game = new GameData(game.gameID(), username, black, game.gameName(), game.game());
 
             } else if (playerColor == ChessGame.TeamColor.BLACK) {
                 if (black != null && !black.equals(username)) {
-                    throw new ServiceException("Already Taken");
+                    throw new ServiceException(403, "Already Taken");
                 }
                 game = new GameData(game.gameID(), white, username, game.gameName(), game.game());
 
             } else {
-                throw new ServiceException("Bad Request");
+                throw new ServiceException(400, "Bad Request");
             }
 
             dataAccess.updateGame(game);
         } catch (DataAccessException e) {
-            throw new ServiceException(e.getMessage());
+            throw new ServiceException(500, "Internal Server Error");
         }
     }
 }
+
 

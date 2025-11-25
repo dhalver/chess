@@ -11,7 +11,6 @@ import service.ClearService;
 import service.GameService;
 import service.ServiceException;
 import service.UserService;
-import io.javalin.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -59,13 +58,25 @@ public class Server {
         javalin.put("/game", this::handleJoinGame);
     }
 
+    // ---------- Helpers ----------
+
+    private void handleServiceError(Context ctx, ServiceException e) {
+        int status = e.statusCode();
+        if (status == 0) {
+            status = 500;
+        }
+        ctx.status(status);
+        ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+    }
+
+    // ---------- Handlers ----------
+
     private void handleClear(Context ctx) {
         try {
             clearService.clear();
             ctx.status(200).json(Map.of());
         } catch (ServiceException e) {
-            ctx.status(500);
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -83,8 +94,7 @@ public class Server {
                     "authToken", auth.authToken()
             ));
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -101,8 +111,7 @@ public class Server {
                     "authToken", auth.authToken()
             ));
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -112,8 +121,7 @@ public class Server {
             userService.logout(authToken);
             ctx.status(200).json(Map.of());
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -125,8 +133,7 @@ public class Server {
             var game = gameService.createGame(authToken, req.gameName());
             ctx.status(200).json(new CreateGameResponse(game.gameID()));
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -145,8 +152,7 @@ public class Server {
 
             ctx.status(200).json(new ListGamesResponse(summaries));
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
 
@@ -175,18 +181,8 @@ public class Server {
             ctx.status(200).json(Map.of());
 
         } catch (ServiceException e) {
-            ctx.status(mapStatus(e));
-            ctx.json(new ErrorResponse("Error: " + e.getMessage()));
+            handleServiceError(ctx, e);
         }
     }
-
-
-    private int mapStatus(ServiceException e) {
-        return switch (e.getMessage()) {
-            case "Bad Request"   -> 400;
-            case "Already Taken" -> 403;
-            case "Unauthorized"  -> 401;
-            default              -> 500;
-        };
-    }
 }
+
