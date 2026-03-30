@@ -1,9 +1,11 @@
 package server;
 
 import chess.ChessGame;
+import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.InMemoryDataAccess;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import model.AuthData;
 import model.GameData;
 import service.ClearService;
@@ -18,33 +20,36 @@ import java.util.List;
 public class Server {
     private final Javalin app;
     private final DataAccess dataAccess;
+    private final Gson gson;
 
     public Server() {
-        dataAccess = new InMemoryDataAccess();
+        this.dataAccess = new InMemoryDataAccess();
+        this.gson = new Gson();
 
-        app = Javalin.create(config -> {
-            config.staticFiles.add("/web");
-        });
+        this.app = Javalin.create(config -> config.staticFiles.add("web"));
 
-        registerRoutes();
+        registerClearEndpoint();
+        registerUserEndpoints();
+        registerGameEndpoints();
     }
 
-    private void registerRoutes() {
+    private void registerClearEndpoint() {
         app.delete("/db", ctx -> {
             try {
                 ClearService clearService = new ClearService(dataAccess);
                 clearService.clear();
-                ctx.status(200);
-                ctx.result("{}");
+                writeJson(ctx, 200, new EmptyResponse());
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             }
         });
+    }
 
+    private void registerUserEndpoints() {
         app.post("/user", ctx -> {
             try {
                 UserService userService = new UserService(dataAccess);
-                CreateUserRequest request = ctx.bodyAsClass(CreateUserRequest.class);
+                CreateUserRequest request = gson.fromJson(ctx.body(), CreateUserRequest.class);
 
                 AuthData auth = userService.register(
                         request.username(),
@@ -52,72 +57,69 @@ public class Server {
                         request.email()
                 );
 
-                ctx.status(200);
-                ctx.json(new AuthResponse(auth.username(), auth.authToken()));
+                writeJson(ctx, 200, new AuthResponse(auth.username(), auth.authToken()));
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: bad request"));
+                writeJson(ctx, 400, new ErrorResponse("Error: bad request"));
             }
         });
 
         app.post("/session", ctx -> {
             try {
                 UserService userService = new UserService(dataAccess);
-                LoginRequest request = ctx.bodyAsClass(LoginRequest.class);
+                LoginRequest request = gson.fromJson(ctx.body(), LoginRequest.class);
 
                 AuthData auth = userService.login(
                         request.username(),
                         request.password()
                 );
 
-                ctx.status(200);
-                ctx.json(new AuthResponse(auth.username(), auth.authToken()));
+                writeJson(ctx, 200, new AuthResponse(auth.username(), auth.authToken()));
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: bad request"));
+                writeJson(ctx, 400, new ErrorResponse("Error: bad request"));
             }
         });
 
         app.delete("/session", ctx -> {
             try {
                 UserService userService = new UserService(dataAccess);
-                String authToken = ctx.header("Authorization");
+                String authToken = ctx.header("authorization");
 
                 userService.logout(authToken);
 
-                ctx.status(200);
-                ctx.result("{}");
-            } catch (ServiceException e) {
-                handleServiceException(ctx, e);
-            }
-        });
-
-        app.post("/game", ctx -> {
-            try {
-                GameService gameService = new GameService(dataAccess);
-                String authToken = ctx.header("Authorization");
-                CreateGameRequest request = ctx.bodyAsClass(CreateGameRequest.class);
-
-                GameData game = gameService.createGame(authToken, request.gameName());
-
-                ctx.status(200);
-                ctx.json(new CreateGameResponse(game.gameID()));
+                writeJson(ctx, 200, new EmptyResponse());
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: bad request"));
+                writeJson(ctx, 500, new ErrorResponse("Error: " + e.getMessage()));
+            }
+        });
+    }
+
+    private void registerGameEndpoints() {
+        app.post("/game", ctx -> {
+            try {
+                GameService gameService = new GameService(dataAccess);
+                String authToken = ctx.header("authorization");
+                CreateGameRequest request = gson.fromJson(ctx.body(), CreateGameRequest.class);
+
+                GameData game = gameService.createGame(authToken, request.gameName());
+
+                writeJson(ctx, 200, new CreateGameResponse(game.gameID()));
+            } catch (ServiceException e) {
+                handleServiceException(ctx, e);
+            } catch (Exception e) {
+                writeJson(ctx, 400, new ErrorResponse("Error: bad request"));
             }
         });
 
         app.get("/game", ctx -> {
             try {
                 GameService gameService = new GameService(dataAccess);
-                String authToken = ctx.header("Authorization");
+                String authToken = ctx.header("authorization");
 
                 Collection<GameData> games = gameService.listGames(authToken);
                 List<GameSummary> summaries = new ArrayList<>();
@@ -131,35 +133,33 @@ public class Server {
                     ));
                 }
 
-                ctx.status(200);
-                ctx.json(new ListGamesResponse(summaries));
+                writeJson(ctx, 200, new ListGamesResponse(summaries));
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
+            } catch (Exception e) {
+                writeJson(ctx, 500, new ErrorResponse("Error: " + e.getMessage()));
             }
         });
 
         app.put("/game", ctx -> {
             try {
                 GameService gameService = new GameService(dataAccess);
-                String authToken = ctx.header("Authorization");
-                JoinGameRequest request = ctx.bodyAsClass(JoinGameRequest.class);
+                String authToken = ctx.header("authorization");
+                JoinGameRequest request = gson.fromJson(ctx.body(), JoinGameRequest.class);
 
-                ChessGame.TeamColor color = parseColor(request.playerColor());
                 Integer gameID = request.gameID();
-
                 if (gameID == null) {
                     throw new ServiceException("Bad Request");
                 }
 
+                ChessGame.TeamColor color = parseColor(request.playerColor());
                 gameService.joinGame(authToken, color, gameID);
 
-                ctx.status(200);
-                ctx.result("{}");
+                writeJson(ctx, 200, new EmptyResponse());
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
-                ctx.status(400);
-                ctx.json(new ErrorResponse("Error: bad request"));
+                writeJson(ctx, 400, new ErrorResponse("Error: bad request"));
             }
         });
     }
@@ -176,20 +176,24 @@ public class Server {
         };
     }
 
-    private void handleServiceException(io.javalin.http.Context ctx, ServiceException e) {
+    private void handleServiceException(Context ctx, ServiceException e) {
         String message = e.getMessage();
 
         if ("Bad Request".equals(message)) {
-            ctx.status(400);
+            writeJson(ctx, 400, new ErrorResponse("Error: bad request"));
         } else if ("Unauthorized".equals(message)) {
-            ctx.status(401);
+            writeJson(ctx, 401, new ErrorResponse("Error: unauthorized"));
         } else if ("Already Taken".equals(message)) {
-            ctx.status(403);
+            writeJson(ctx, 403, new ErrorResponse("Error: already taken"));
         } else {
-            ctx.status(500);
+            writeJson(ctx, 500, new ErrorResponse("Error: " + message));
         }
+    }
 
-        ctx.json(new ErrorResponse("Error: " + message));
+    private void writeJson(Context ctx, int statusCode, Object responseBody) {
+        ctx.status(statusCode);
+        ctx.contentType("application/json");
+        ctx.result(gson.toJson(responseBody));
     }
 
     public int run(int desiredPort) {
@@ -201,7 +205,8 @@ public class Server {
         app.stop();
     }
 
-    public record CreateUserRequest(String username, String password, String email) {}
-    public record LoginRequest(String username, String password) {}
-    public record AuthResponse(String username, String authToken) {}
+    public record CreateUserRequest(String username, String password, String email) { }
+    public record LoginRequest(String username, String password) { }
+    public record AuthResponse(String username, String authToken) { }
+    public record EmptyResponse() { }
 }
