@@ -189,7 +189,7 @@ public class ChessPiece {
             ChessPosition to = new ChessPosition(rc, cc);
             ChessPiece there = board.getPiece(to);
             if (there != null && there.getTeamColor() != this.pieceColor) {
-                addPawnCaptureOrPromote(moves, from, rc, cc, promoRow);
+                addPawnAdvanceOrPromote(moves, from, rc, cc, promoRow);
             }
         }
 
@@ -208,16 +208,6 @@ public class ChessPiece {
             moves.add(new ChessMove(from, to, null));
         }
     }
-
-    private void addPawnCaptureOrPromote(List<ChessMove> moves, ChessPosition from, int r, int c, int promoRow) {
-        ChessPosition to = new ChessPosition(r, c);
-        if (r == promoRow) {
-            moves.add(new ChessMove(from, to, PieceType.QUEEN));
-            moves.add(new ChessMove(from, to, PieceType.ROOK));
-            moves.add(new ChessMove(from, to, PieceType.BISHOP));
-            moves.add(new ChessMove(from, to, PieceType.KNIGHT));
-        } else {
-            moves.add(new ChessMove(from, to, null));
-        }
-    }
 }
+
+
