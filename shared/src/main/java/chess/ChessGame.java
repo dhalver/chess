@@ -110,11 +110,13 @@ public class ChessGame {
     }
 
     private ChessPosition findKing(ChessBoard b, TeamColor side) {
-        for (int r=1; r<=8; r++) for (int c=1; c<=8; c++) {
-            var p = new ChessPosition(r,c);
-            var pc = b.getPiece(p);
-            if (pc!=null && pc.getPieceType()==ChessPiece.PieceType.KING && pc.getTeamColor()==side) {
-                return p;
+        for (int r = 1; r <= 8; r++) {
+            for (int c = 1; c <= 8; c++) {
+                var p = new ChessPosition(r, c);
+                var pc = b.getPiece(p);
+                if (pc != null && pc.getPieceType() == ChessPiece.PieceType.KING && pc.getTeamColor() == side) {
+                    return p;
+                }
             }
         }
         return null;
@@ -125,8 +127,12 @@ public class ChessGame {
             for (int c = 1; c <= 8; c++) {
                 ChessPosition from = new ChessPosition(r, c);
                 ChessPiece pc = b.getPiece(from);
-                if (pc == null || pc.getTeamColor() != byTeam) continue;
-                if (attacks(b, from, square, pc)) return true;
+                if (pc == null || pc.getTeamColor() != byTeam) {
+                    continue;
+                }
+                if (attacks(b, from, square, pc)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -173,7 +179,9 @@ public class ChessGame {
         for (int i = 0; i < steps; i++) {
             r += stepR;
             c += stepC;
-            if (b.getPiece(new ChessPosition(r, c)) != null) return false;
+            if (b.getPiece(new ChessPosition(r, c)) != null) {
+                return false;
+            }
         }
         return true;
     }
@@ -184,10 +192,14 @@ public class ChessGame {
             int c = (idx % 8) + 1;
             ChessPosition p = new ChessPosition(r, c);
             ChessPiece pc = board.getPiece(p);
-            if (pc == null || pc.getTeamColor() != team) continue;
+            if (pc == null || pc.getTeamColor() != team) {
+                continue;
+            }
 
             var vm = validMoves(p);
-            if (vm != null && !vm.isEmpty()) return true;
+            if (vm != null && !vm.isEmpty()) {
+                return true;
+            }
         }
         return false;
     }
@@ -202,11 +214,17 @@ public class ChessGame {
     public void makeMove(ChessMove move) throws InvalidMoveException {
         ChessPosition start = move.getStartPosition();
         ChessPiece piece = board.getPiece(start);
-        if (piece == null) throw new InvalidMoveException("No piece at start square.");
-        if (piece.getTeamColor() != teamTurn) throw new InvalidMoveException("Wrong side to move.");
+        if (piece == null) {
+            throw new InvalidMoveException("No piece at start square.");
+        }
+        if (piece.getTeamColor() != teamTurn) {
+            throw new InvalidMoveException("Wrong side to move.");
+        }
 
         var legal = validMoves(start);
-        if (legal == null || !legal.contains(move)) throw new InvalidMoveException("Illegal move.");
+        if (legal == null || !legal.contains(move)) {
+            throw new InvalidMoveException("Illegal move.");
+        }
 
         // Apply on the real board (captures/promotion handled inside)
         applyMove(board, move);
@@ -223,7 +241,9 @@ public class ChessGame {
      */
     public boolean isInCheck(TeamColor teamColor) {
         ChessPosition king = findKing(board, teamColor);
-        if (king == null) return false; // defensive
+        if (king == null) {
+            return false;
+        }
         TeamColor enemy = (teamColor == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
         return isSquareAttacked(board, king, enemy);
     }

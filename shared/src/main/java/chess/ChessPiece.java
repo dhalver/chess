@@ -103,11 +103,15 @@ public class ChessPiece {
             }
             case KNIGHT -> {
                 int[][] d = {{+2, +1}, {+2, -1}, {-2, +1}, {-2, -1}, {+1, +2}, {+1, -2}, {-1, +2}, {-1, -2}};
-                for (int[] s : d) addStepIfAllowed(moves, board, myPosition, s[0], s[1]);
+                for (int[] s : d) {
+                    addStepIfAllowed(moves, board, myPosition, s[0], s[1]);
+                }
             }
             case KING -> {
                 int[][] d = {{+1, 0}, {-1, 0}, {0, +1}, {0, -1}, {+1, +1}, {+1, -1}, {-1, +1}, {-1, -1}};
-                for (int[] s : d) addStepIfAllowed(moves, board, myPosition, s[0], s[1]);
+                for (int[] s : d) {
+                    addStepIfAllowed(moves, board, myPosition, s[0], s[1]);
+                }
             }
             //This fixed code allows for the correct direction for pawns based on which color
             //White piece needs to be +1 black piece needs to be -1
@@ -146,7 +150,9 @@ public class ChessPiece {
 
     private void addStepIfAllowed(List<ChessMove> moves, ChessBoard board, ChessPosition from, int dr, int dc) {
         int r = from.getRow() + dr, c = from.getColumn() + dc;
-        if (!inBounds(r, c)) return;
+        if (!inBounds(r, c)) {
+            return;
+        }
         ChessPosition to = new ChessPosition(r, c);
         ChessPiece there = board.getPiece(to);
         if (there == null || there.getTeamColor() != this.pieceColor) {
@@ -177,7 +183,9 @@ public class ChessPiece {
         // Allows for diagonal captures
         for (int dc : new int[]{-1, +1}) {
             int rc = r + dir, cc = c + dc;
-            if (!inBounds(rc, cc)) continue;
+            if (!inBounds(rc, cc)) {
+                continue;
+            }
             ChessPosition to = new ChessPosition(rc, cc);
             ChessPiece there = board.getPiece(to);
             if (there != null && there.getTeamColor() != this.pieceColor) {

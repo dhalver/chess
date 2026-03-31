@@ -82,13 +82,13 @@ public class ChessBoard {
         }
 
         // standard setup
-        var W = ChessGame.TeamColor.WHITE;
-        var B = ChessGame.TeamColor.BLACK;
+        var whiteTeam = ChessGame.TeamColor.WHITE;
+        var blackTeam = ChessGame.TeamColor.BLACK;
 
         // pawns
         for (int c = 1; c <= 8; c++) {
-            addPiece(new ChessPosition(2, c), new ChessPiece(W, ChessPiece.PieceType.PAWN));
-            addPiece(new ChessPosition(7, c), new ChessPiece(B, ChessPiece.PieceType.PAWN));
+            addPiece(new ChessPosition(2, c), new ChessPiece(whiteTeam, ChessPiece.PieceType.PAWN));
+            addPiece(new ChessPosition(7, c), new ChessPiece(blackTeam, ChessPiece.PieceType.PAWN));
         }
 
         // back ranks (left→right: R N B Q K B N R)
@@ -104,8 +104,8 @@ public class ChessBoard {
         };
 
         for (int c = 1; c <= 8; c++) {
-            addPiece(new ChessPosition(1, c), new ChessPiece(W, order[c - 1]));
-            addPiece(new ChessPosition(8, c), new ChessPiece(B, order[c - 1]));
+            addPiece(new ChessPosition(1, c), new ChessPiece(whiteTeam, order[c - 1]));
+            addPiece(new ChessPosition(8, c), new ChessPiece(blackTeam, order[c - 1]));
         }
     }
 
