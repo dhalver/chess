@@ -8,7 +8,46 @@ import java.util.Collection;
 
 public class MySqlDataAccess implements DataAccess {
 
-    public MySqlDataAccess() {
+    public MySqlDataAccess() throws DataAccessException {
+        configureDatabase();
+    }
+
+    private void configureDatabase() throws DataAccessException {
+        String[] statements = {
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    username VARCHAR(255) NOT NULL PRIMARY KEY,
+                    password_hash VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) NOT NULL
+                )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS auth (
+                    auth_token VARCHAR(255) NOT NULL PRIMARY KEY,
+                    username VARCHAR(255) NOT NULL,
+                    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+                )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS games (
+                    game_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    white_username VARCHAR(255),
+                    black_username VARCHAR(255),
+                    game_name VARCHAR(255) NOT NULL,
+                    game_json TEXT NOT NULL
+                )
+                """
+        };
+
+        try (var conn = DatabaseManager.getConnection()) {
+            for (String statement : statements) {
+                try (var ps = conn.prepareStatement(statement)) {
+                    ps.executeUpdate();
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException("Unable to configure database: " + e.getMessage());
+        }
     }
 
     @Override
