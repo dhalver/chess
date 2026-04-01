@@ -94,7 +94,32 @@ public class MySqlDataAccess implements DataAccess {
 
     @Override
     public UserData getUser(String username) throws DataAccessException {
-        throw new DataAccessException("Not implemented");
+        String statement = """
+            SELECT username, password_hash, email
+            FROM users
+            WHERE username = ?
+            """;
+
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+
+            ps.setString(1, username);
+
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new UserData(
+                            rs.getString("username"),
+                            rs.getString("password_hash"), // NOTE: this is hashed password
+                            rs.getString("email")
+                    );
+                }
+            }
+
+            return null;
+
+        } catch (Exception e) {
+            throw new DataAccessException("Unable to get user: " + e.getMessage());
+        }
     }
 
     @Override
