@@ -124,7 +124,22 @@ public class MySqlDataAccess implements DataAccess {
 
     @Override
     public void createAuth(AuthData auth) throws DataAccessException {
-        throw new DataAccessException("Not implemented");
+        String statement = """
+            INSERT INTO auth (auth_token, username)
+            VALUES (?, ?)
+            """;
+
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement)) {
+
+            ps.setString(1, auth.authToken());
+            ps.setString(2, auth.username());
+
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            throw new DataAccessException("Unable to create auth: " + e.getMessage());
+        }
     }
 
     @Override
