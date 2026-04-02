@@ -6,6 +6,9 @@ import model.UserData;
 
 import java.util.Collection;
 
+import chess.ChessGame;
+import com.google.gson.Gson;
+
 public class MySqlDataAccess implements DataAccess {
 
     public MySqlDataAccess() throws DataAccessException {
@@ -191,7 +194,35 @@ public class MySqlDataAccess implements DataAccess {
 
     @Override
     public int createGame(String gameName) throws DataAccessException {
-        throw new DataAccessException("Not implemented");
+        String statement = """
+            INSERT INTO games (white_username, black_username, game_name, game_json)
+            VALUES (?, ?, ?, ?)
+            """;
+
+        ChessGame game = new ChessGame();
+        String gameJson = new Gson().toJson(game);
+
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+
+            ps.setString(1, null);
+            ps.setString(2, null);
+            ps.setString(3, gameName);
+            ps.setString(4, gameJson);
+
+            ps.executeUpdate();
+
+            try (var rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+            throw new DataAccessException("Unable to get game ID");
+
+        } catch (Exception e) {
+            throw new DataAccessException("Unable to create game: " + e.getMessage());
+        }
     }
 
     @Override
