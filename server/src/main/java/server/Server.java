@@ -3,7 +3,8 @@ package server;
 import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.DataAccess;
-import dataaccess.InMemoryDataAccess;
+import dataaccess.DataAccessException;
+import dataaccess.MySqlDataAccess;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import model.AuthData;
@@ -23,7 +24,12 @@ public class Server {
     private final Gson gson;
 
     public Server() {
-        this.dataAccess = new InMemoryDataAccess();
+        try {
+            this.dataAccess = new MySqlDataAccess();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to initialize database", e);
+        }
+
         this.gson = new Gson();
 
         this.app = Javalin.create(config -> config.staticFiles.add("web"));

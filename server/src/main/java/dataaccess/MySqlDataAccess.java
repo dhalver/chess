@@ -6,8 +6,10 @@ import model.UserData;
 
 import java.util.Collection;
 
+import org.mindrot.jbcrypt.BCrypt;
 import chess.ChessGame;
 import com.google.gson.Gson;
+import java.util.ArrayList;
 
 public class MySqlDataAccess implements DataAccess {
 
@@ -75,9 +77,9 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public void createUser(UserData user) throws DataAccessException {
         String statement = """
-            INSERT INTO users (username, password_hash, email)
-            VALUES (?, ?, ?)
-            """;
+                INSERT INTO users (username, password_hash, email)
+                VALUES (?, ?, ?)
+                """;
 
         String hashedPassword = BCrypt.hashpw(user.password(), BCrypt.gensalt());
 
@@ -98,10 +100,10 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public UserData getUser(String username) throws DataAccessException {
         String statement = """
-            SELECT username, password_hash, email
-            FROM users
-            WHERE username = ?
-            """;
+                SELECT username, password_hash, email
+                FROM users
+                WHERE username = ?
+                """;
 
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(statement)) {
@@ -128,9 +130,9 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public void createAuth(AuthData auth) throws DataAccessException {
         String statement = """
-            INSERT INTO auth (auth_token, username)
-            VALUES (?, ?)
-            """;
+                INSERT INTO auth (auth_token, username)
+                VALUES (?, ?)
+                """;
 
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(statement)) {
@@ -148,10 +150,10 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public AuthData getAuth(String authToken) throws DataAccessException {
         String statement = """
-            SELECT auth_token, username
-            FROM auth
-            WHERE auth_token = ?
-            """;
+                SELECT auth_token, username
+                FROM auth
+                WHERE auth_token = ?
+                """;
 
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(statement)) {
@@ -177,9 +179,9 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public void deleteAuth(String authToken) throws DataAccessException {
         String statement = """
-            DELETE FROM auth
-            WHERE auth_token = ?
-            """;
+                DELETE FROM auth
+                WHERE auth_token = ?
+                """;
 
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(statement)) {
@@ -195,9 +197,9 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public int createGame(String gameName) throws DataAccessException {
         String statement = """
-            INSERT INTO games (white_username, black_username, game_name, game_json)
-            VALUES (?, ?, ?, ?)
-            """;
+                INSERT INTO games (white_username, black_username, game_name, game_json)
+                VALUES (?, ?, ?, ?)
+                """;
 
         ChessGame game = new ChessGame();
         String gameJson = new Gson().toJson(game);
@@ -228,10 +230,10 @@ public class MySqlDataAccess implements DataAccess {
     @Override
     public GameData getGame(int gameID) throws DataAccessException {
         String statement = """
-            SELECT game_id, white_username, black_username, game_name, game_json
-            FROM games
-            WHERE game_id = ?
-            """;
+                SELECT game_id, white_username, black_username, game_name, game_json
+                FROM games
+                WHERE game_id = ?
+                """;
 
         try (var conn = DatabaseManager.getConnection();
              var ps = conn.prepareStatement(statement)) {
@@ -266,11 +268,39 @@ public class MySqlDataAccess implements DataAccess {
 
     @Override
     public Collection<GameData> listGames() throws DataAccessException {
-        throw new DataAccessException("Not implemented");
+        String statement = """
+                SELECT game_id, white_username, black_username, game_name, game_json
+                FROM games
+                """;
+
+        Collection<GameData> games = new ArrayList<>();
+
+        try (var conn = DatabaseManager.getConnection();
+             var ps = conn.prepareStatement(statement);
+             var rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String json = rs.getString("game_json");
+                ChessGame game = new Gson().fromJson(json, ChessGame.class);
+
+                games.add(new GameData(
+                        rs.getInt("game_id"),
+                        rs.getString("white_username"),
+                        rs.getString("black_username"),
+                        rs.getString("game_name"),
+                        game
+                ));
+            }
+
+            return games;
+
+        } catch (Exception e) {
+            throw new DataAccessException("Unable to list games: " + e.getMessage());
+        }
     }
 
     @Override
     public void updateGame(GameData game) throws DataAccessException {
-        throw new DataAccessException("Not implemented");
+        
     }
 }
