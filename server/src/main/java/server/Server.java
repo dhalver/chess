@@ -31,7 +31,6 @@ public class Server {
         }
 
         this.gson = new Gson();
-
         this.app = Javalin.create(config -> config.staticFiles.add("web"));
 
         registerClearEndpoint();
@@ -95,8 +94,8 @@ public class Server {
                 String authToken = ctx.header("authorization");
 
                 userService.logout(authToken);
-
                 writeJson(ctx, 200, new EmptyResponse());
+
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
@@ -113,8 +112,8 @@ public class Server {
                 CreateGameRequest request = gson.fromJson(ctx.body(), CreateGameRequest.class);
 
                 GameData game = gameService.createGame(authToken, request.gameName());
-
                 writeJson(ctx, 200, new CreateGameResponse(game.gameID()));
+
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
@@ -140,6 +139,7 @@ public class Server {
                 }
 
                 writeJson(ctx, 200, new ListGamesResponse(summaries));
+
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
@@ -162,6 +162,7 @@ public class Server {
                 gameService.joinGame(authToken, color, gameID);
 
                 writeJson(ctx, 200, new EmptyResponse());
+
             } catch (ServiceException e) {
                 handleServiceException(ctx, e);
             } catch (Exception e) {
@@ -171,8 +172,8 @@ public class Server {
     }
 
     private ChessGame.TeamColor parseColor(String color) throws ServiceException {
-        if (color == null || color.isBlank()) {
-            throw new ServiceException("Bad Request");
+        if (color == null) {
+            return null;
         }
 
         return switch (color.toUpperCase()) {
