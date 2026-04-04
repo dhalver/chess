@@ -302,11 +302,15 @@ public class MySqlDataAccess implements DataAccess {
 
     @Override
     public void updateGame(GameData game) throws DataAccessException {
+        if (game == null || game.game() == null || game.gameID() <= 0) {
+            throw new DataAccessException("Invalid game");
+        }
+
         String statement = """
-                UPDATE games
-                SET white_username = ?, black_username = ?, game_name = ?, game_json = ?
-                WHERE game_id = ?
-                """;
+            UPDATE games
+            SET white_username = ?, black_username = ?, game_name = ?, game_json = ?
+            WHERE game_id = ?
+            """;
 
         String gameJson = new Gson().toJson(game.game());
 
@@ -319,8 +323,13 @@ public class MySqlDataAccess implements DataAccess {
             ps.setString(4, gameJson);
             ps.setInt(5, game.gameID());
 
-            ps.executeUpdate();
+            int rowsUpdated = ps.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new DataAccessException("Game not found");
+            }
 
+        } catch (DataAccessException e) {
+            throw e;
         } catch (Exception e) {
             throw new DataAccessException("Unable to update game: " + e.getMessage());
         }
