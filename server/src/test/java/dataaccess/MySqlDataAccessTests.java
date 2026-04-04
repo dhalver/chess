@@ -1,8 +1,9 @@
 package dataaccess;
 
-import model.UserData;
 import model.GameData;
-import org.junit.jupiter.api.*;
+import model.UserData;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,6 +38,16 @@ public class MySqlDataAccessTests {
     }
 
     @Test
+    void getUserSuccess() throws Exception {
+        dao.createUser(new UserData("test", "pass", "email@test.com"));
+
+        UserData user = dao.getUser("test");
+
+        assertNotNull(user);
+        assertEquals("test", user.username());
+    }
+
+    @Test
     void getUserNotFound() throws Exception {
         UserData result = dao.getUser("nope");
         assertNull(result);
@@ -53,9 +64,59 @@ public class MySqlDataAccessTests {
     }
 
     @Test
+    void createGameBadRequest() {
+        assertThrows(DataAccessException.class, () -> dao.createGame(null));
+    }
+
+    @Test
+    void getGameSuccess() throws Exception {
+        int id = dao.createGame("game");
+
+        GameData game = dao.getGame(id);
+
+        assertNotNull(game);
+        assertEquals("game", game.gameName());
+    }
+
+    @Test
     void getGameInvalid() throws Exception {
         GameData game = dao.getGame(9999);
         assertNull(game);
+    }
+
+    @Test
+    void listGamesSuccess() throws Exception {
+        dao.createGame("g1");
+        dao.createGame("g2");
+
+        var games = dao.listGames();
+
+        assertEquals(2, games.size());
+    }
+
+    @Test
+    void listGamesEmpty() throws Exception {
+        var games = dao.listGames();
+        assertTrue(games.isEmpty());
+    }
+
+    @Test
+    void updateGameSuccess() throws Exception {
+        int id = dao.createGame("game");
+
+        GameData original = dao.getGame(id);
+        GameData updated = new GameData(id, "white", null, "game", original.game());
+
+        dao.updateGame(updated);
+
+        GameData result = dao.getGame(id);
+        assertEquals("white", result.whiteUsername());
+    }
+
+    @Test
+    void updateGameInvalid() {
+        assertThrows(DataAccessException.class, () ->
+                dao.updateGame(new GameData(9999, "white", null, "game", null)));
     }
 
     @Test
