@@ -14,6 +14,7 @@ import java.util.ArrayList;
 public class MySqlDataAccess implements DataAccess {
 
     public MySqlDataAccess() throws DataAccessException {
+        DatabaseManager.createDatabase();
         configureDatabase();
     }
 
