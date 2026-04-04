@@ -172,8 +172,8 @@ public class Server {
     }
 
     private ChessGame.TeamColor parseColor(String color) throws ServiceException {
-        if (color == null) {
-            return null;
+        if (color == null || color.isBlank()) {
+            throw new ServiceException("Bad Request");
         }
 
         return switch (color.toUpperCase()) {
