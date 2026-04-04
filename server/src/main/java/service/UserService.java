@@ -50,7 +50,20 @@ public class UserService {
             }
 
             UserData user = dataAccess.getUser(username);
-            if (user == null || !BCrypt.checkpw(password, user.password())) {
+            if (user == null) {
+                throw new ServiceException("Unauthorized");
+            }
+
+            String storedPassword = user.password();
+            boolean passwordMatches;
+
+            if (storedPassword != null && storedPassword.startsWith("$2")) {
+                passwordMatches = BCrypt.checkpw(password, storedPassword);
+            } else {
+                passwordMatches = storedPassword != null && storedPassword.equals(password);
+            }
+
+            if (!passwordMatches) {
                 throw new ServiceException("Unauthorized");
             }
 
