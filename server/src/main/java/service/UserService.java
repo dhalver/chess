@@ -20,7 +20,8 @@ public class UserService {
         return s == null || s.isBlank();
     }
 
-    public AuthData register(String username, String password, String email) throws ServiceException {
+    public AuthData register(String username, String password, String email)
+            throws ServiceException {
         try {
             if (isBlank(username) || isBlank(password) || isBlank(email)) {
                 throw new ServiceException("Bad Request");
@@ -50,7 +51,7 @@ public class UserService {
 
             UserData user = dataAccess.getUser(username);
             if (user == null || !BCrypt.checkpw(password, user.password())) {
-                throw new ServiceException("unauthorized");
+                throw new ServiceException("Unauthorized");
             }
 
             AuthData auth = new AuthData(UUID.randomUUID().toString(), username);
@@ -64,11 +65,17 @@ public class UserService {
 
     public void logout(String authToken) throws ServiceException {
         try {
-            var auth = dataAccess.getAuth(authToken);
+            if (isBlank(authToken)) {
+                throw new ServiceException("Unauthorized");
+            }
+
+            AuthData auth = dataAccess.getAuth(authToken);
             if (auth == null) {
                 throw new ServiceException("Unauthorized");
             }
+
             dataAccess.deleteAuth(authToken);
+
         } catch (DataAccessException e) {
             throw new ServiceException(e.getMessage());
         }
