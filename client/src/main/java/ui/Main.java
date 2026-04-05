@@ -2,14 +2,18 @@ package ui;
 
 import client.ServerFacade;
 import model.AuthData;
+import server.GameSummary;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    private static ServerFacade facade = new ServerFacade(8080);
-    private static Scanner scanner = new Scanner(System.in);
+    private static final ServerFacade facade = new ServerFacade(8080);
+    private static final Scanner scanner = new Scanner(System.in);
     private static AuthData authData = null;
+    private static List<GameSummary> lastListedGames = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("Welcome to Chess!");
@@ -39,8 +43,8 @@ public class Main {
                 switch (input) {
                     case "help" -> printPostloginHelp();
                     case "logout" -> logout();
-                    case "create" -> System.out.println("Create game not implemented yet.");
-                    case "list" -> System.out.println("List games not implemented yet.");
+                    case "create" -> createGame();
+                    case "list" -> listGames();
                     case "play" -> System.out.println("Play game not implemented yet.");
                     case "observe" -> System.out.println("Observe game not implemented yet.");
                     default -> System.out.println("Unknown command. Type 'help'.");
@@ -86,9 +90,49 @@ public class Main {
         try {
             facade.logout(authData.authToken());
             authData = null;
+            lastListedGames.clear();
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
+        }
+    }
+
+    private static void createGame() {
+        try {
+            System.out.print("Game name: ");
+            String gameName = scanner.nextLine().trim();
+
+            facade.createGame(authData.authToken(), gameName);
+            System.out.println("Game created.");
+        } catch (Exception e) {
+            System.out.println("Create failed: " + e.getMessage());
+        }
+    }
+
+    private static void listGames() {
+        try {
+            var response = facade.listGames(authData.authToken());
+            lastListedGames = new ArrayList<>(response.games());
+
+            if (lastListedGames.isEmpty()) {
+                System.out.println("No games found.");
+                return;
+            }
+
+            for (int i = 0; i < lastListedGames.size(); i++) {
+                GameSummary game = lastListedGames.get(i);
+
+                String white = game.whiteUsername() == null ? "-" : game.whiteUsername();
+                String black = game.blackUsername() == null ? "-" : game.blackUsername();
+
+                System.out.printf("%d. %s | White: %s | Black: %s%n",
+                        i + 1,
+                        game.gameName(),
+                        white,
+                        black);
+            }
+        } catch (Exception e) {
+            System.out.println("List failed: " + e.getMessage());
         }
     }
 
