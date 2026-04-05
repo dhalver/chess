@@ -45,8 +45,8 @@ public class Main {
                     case "logout" -> logout();
                     case "create" -> createGame();
                     case "list" -> listGames();
-                    case "play" -> System.out.println("Play game not implemented yet.");
-                    case "observe" -> System.out.println("Observe game not implemented yet.");
+                    case "play" -> playGame();
+                    case "observe" -> observeGame();
                     default -> System.out.println("Unknown command. Type 'help'.");
                 }
             }
@@ -133,6 +133,69 @@ public class Main {
             }
         } catch (Exception e) {
             System.out.println("List failed: " + e.getMessage());
+        }
+    }
+
+    private static void playGame() {
+        try {
+            if (lastListedGames.isEmpty()) {
+                System.out.println("No games listed. Use 'list' first.");
+                return;
+            }
+
+            System.out.print("Enter game number: ");
+            int choice = Integer.parseInt(scanner.nextLine().trim());
+
+            if (choice < 1 || choice > lastListedGames.size()) {
+                System.out.println("Invalid game number.");
+                return;
+            }
+
+            System.out.print("Enter color (WHITE or BLACK): ");
+            String color = scanner.nextLine().trim().toUpperCase();
+
+            if (!color.equals("WHITE") && !color.equals("BLACK")) {
+                System.out.println("Invalid color.");
+                return;
+            }
+
+            int gameID = lastListedGames.get(choice - 1).gameID();
+
+            facade.joinGame(authData.authToken(), gameID, color);
+
+            System.out.println("Joined game as " + color + ".");
+            System.out.println("Board display not implemented yet.");
+
+        } catch (Exception e) {
+            System.out.println("Play failed: " + e.getMessage());
+        }
+    }
+
+    private static void observeGame() {
+        try {
+            if (lastListedGames.isEmpty()) {
+                System.out.println("No games listed. Use 'list' first.");
+                return;
+            }
+
+            System.out.print("Enter game number: ");
+            int choice = Integer.parseInt(scanner.nextLine().trim());
+
+            if (choice < 1 || choice > lastListedGames.size()) {
+                System.out.println("Invalid game number.");
+                return;
+            }
+
+            int gameID = lastListedGames.get(choice - 1).gameID();
+
+            // observers still need a valid color for your server
+            facade.joinGame(authData.authToken(), gameID, "WHITE");
+
+            System.out.println("Observing game.");
+            System.out.println("Board display not implemented yet.");
+
+        } catch (Exception e) {
+            System.out.println("Observe failed: " + e.getMessage());
         }
     }
 
