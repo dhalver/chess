@@ -10,6 +10,9 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Map;
 
+import server.ListGamesResponse;
+import server.CreateGameResponse;
+
 public class ServerFacade {
     private final String serverUrl;
     private final Gson gson = new Gson();
@@ -37,6 +40,33 @@ public class ServerFacade {
 
     public void logout(String authToken) throws Exception {
         this.makeRequest("DELETE", "/session", null, authToken, null);
+    }
+
+    public ListGamesResponse listGames(String authToken) throws Exception {
+        return this.makeRequest("GET", "/game", null, authToken, ListGamesResponse.class);
+    }
+
+    public int createGame(String authToken, String gameName) throws Exception {
+        var requestBody = Map.of("gameName", gameName);
+
+        CreateGameResponse response = this.makeRequest(
+                "POST",
+                "/game",
+                requestBody,
+                authToken,
+                CreateGameResponse.class
+        );
+
+        return response.gameID();
+    }
+
+    public void joinGame(String authToken, int gameID, String playerColor) throws Exception {
+        var requestBody = Map.of(
+                "playerColor", playerColor,
+                "gameID", gameID
+        );
+
+        this.makeRequest("PUT", "/game", requestBody, authToken, null);
     }
 
     private <T> T makeRequest(String method, String path, Object requestBody,
