@@ -26,6 +26,11 @@ public class Main {
                 System.out.print("[logged out] >>> ");
                 String input = scanner.nextLine().trim().toLowerCase();
 
+                if (input.isEmpty()) {
+                    System.out.println("Please enter a command.");
+                    continue;
+                }
+
                 switch (input) {
                     case "help" -> printPreloginHelp();
                     case "quit" -> {
@@ -39,6 +44,11 @@ public class Main {
             } else {
                 System.out.print("[logged in] >>> ");
                 String input = scanner.nextLine().trim().toLowerCase();
+
+                if (input.isEmpty()) {
+                    System.out.println("Please enter a command.");
+                    continue;
+                }
 
                 switch (input) {
                     case "help" -> printPostloginHelp();
@@ -57,9 +67,17 @@ public class Main {
         try {
             System.out.print("Username: ");
             String username = scanner.nextLine().trim();
+            if (username.isEmpty()) {
+                System.out.println("Username cannot be blank.");
+                return;
+            }
 
             System.out.print("Password: ");
             String password = scanner.nextLine().trim();
+            if (password.isEmpty()) {
+                System.out.println("Password cannot be blank.");
+                return;
+            }
 
             authData = facade.login(username, password);
             System.out.println("Logged in as " + authData.username() + ".");
@@ -72,12 +90,24 @@ public class Main {
         try {
             System.out.print("Username: ");
             String username = scanner.nextLine().trim();
+            if (username.isEmpty()) {
+                System.out.println("Username cannot be blank.");
+                return;
+            }
 
             System.out.print("Password: ");
             String password = scanner.nextLine().trim();
+            if (password.isEmpty()) {
+                System.out.println("Password cannot be blank.");
+                return;
+            }
 
             System.out.print("Email: ");
             String email = scanner.nextLine().trim();
+            if (email.isEmpty()) {
+                System.out.println("Email cannot be blank.");
+                return;
+            }
 
             authData = facade.register(username, password, email);
             System.out.println("Registered and logged in as " + authData.username() + ".");
@@ -101,6 +131,11 @@ public class Main {
         try {
             System.out.print("Game name: ");
             String gameName = scanner.nextLine().trim();
+
+            if (gameName.isEmpty()) {
+                System.out.println("Game name cannot be blank.");
+                return;
+            }
 
             facade.createGame(authData.authToken(), gameName);
             System.out.println("Game created.");
@@ -144,7 +179,8 @@ public class Main {
             }
 
             System.out.print("Enter game number: ");
-            int choice = Integer.parseInt(scanner.nextLine().trim());
+            String choiceInput = scanner.nextLine().trim();
+            int choice = Integer.parseInt(choiceInput);
 
             if (choice < 1 || choice > lastListedGames.size()) {
                 System.out.println("Invalid game number.");
@@ -160,7 +196,6 @@ public class Main {
             }
 
             int gameID = lastListedGames.get(choice - 1).gameID();
-
             facade.joinGame(authData.authToken(), gameID, color);
 
             System.out.println("Joined game as " + color + ".");
@@ -181,17 +216,16 @@ public class Main {
             }
 
             System.out.print("Enter game number: ");
-            int choice = Integer.parseInt(scanner.nextLine().trim());
+            String choiceInput = scanner.nextLine().trim();
+            int choice = Integer.parseInt(choiceInput);
 
             if (choice < 1 || choice > lastListedGames.size()) {
                 System.out.println("Invalid game number.");
                 return;
             }
 
-            int gameID = lastListedGames.get(choice - 1).gameID();
-
             System.out.println("Observing game.");
-            drawBoard(true); // observers see white perspective
+            drawBoard(true);
 
         } catch (NumberFormatException e) {
             System.out.println("Invalid game number.");
