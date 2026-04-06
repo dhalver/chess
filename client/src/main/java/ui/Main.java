@@ -234,40 +234,42 @@ public class Main {
         }
     }
 
-    private static void drawBoard(boolean isWhitePerspective) {
-        String[] pieces = {
-                "r n b q k b n r",
-                "p p p p p p p p",
-                ". . . . . . . .",
-                ". . . . . . . .",
-                ". . . . . . . .",
-                ". . . . . . . .",
-                "P P P P P P P P",
-                "R N B Q K B N R"
-        };
+    private static final String LIGHT = "\u001B[47m";
+    private static final String DARK = "\u001B[46m";
+    private static final String RESET = "\u001B[0m";
 
-        if (!isWhitePerspective) {
-            for (int i = 0; i < 4; i++) {
-                String temp = pieces[i];
-                pieces[i] = pieces[7 - i];
-                pieces[7 - i] = temp;
-            }
-        }
+    private static void drawBoard(boolean isWhitePerspective) {
+        String[][] board = {
+                {"r","n","b","q","k","b","n","r"},
+                {"p","p","p","p","p","p","p","p"},
+                {".",".",".",".",".",".",".","."},
+                {".",".",".",".",".",".",".","."},
+                {".",".",".",".",".",".",".","."},
+                {".",".",".",".",".",".",".","."},
+                {"P","P","P","P","P","P","P","P"},
+                {"R","N","B","Q","K","B","N","R"}
+        };
 
         for (int row = 0; row < 8; row++) {
             int displayRow = isWhitePerspective ? 8 - row : row + 1;
             System.out.print(displayRow + " ");
 
-            String[] cols = pieces[row].split(" ");
             for (int col = 0; col < 8; col++) {
-                int index = isWhitePerspective ? col : 7 - col;
-                System.out.print(cols[index] + " ");
-            }
+                int r = isWhitePerspective ? row : 7 - row;
+                int c = isWhitePerspective ? col : 7 - col;
 
+                boolean isLight = (row + col) % 2 == 0;
+                String color = isLight ? LIGHT : DARK;
+
+                String piece = board[r][c];
+                if (piece.equals(".")) piece = " ";
+
+                System.out.print(color + " " + piece + " " + RESET);
+            }
             System.out.println();
         }
 
-        System.out.println("  a b c d e f g h");
+        System.out.println("   a  b  c  d  e  f  g  h");
     }
 
     private static void printPreloginHelp() {
