@@ -164,8 +164,10 @@ public class Main {
             facade.joinGame(authData.authToken(), gameID, color);
 
             System.out.println("Joined game as " + color + ".");
-            System.out.println("Board display not implemented yet.");
+            drawBoard(color.equals("WHITE"));
 
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid game number.");
         } catch (Exception e) {
             System.out.println("Play failed: " + e.getMessage());
         }
@@ -188,15 +190,50 @@ public class Main {
 
             int gameID = lastListedGames.get(choice - 1).gameID();
 
-            // observers still need a valid color for your server
-            facade.joinGame(authData.authToken(), gameID, "WHITE");
-
             System.out.println("Observing game.");
-            System.out.println("Board display not implemented yet.");
+            drawBoard(true); // observers see white perspective
 
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid game number.");
         } catch (Exception e) {
             System.out.println("Observe failed: " + e.getMessage());
         }
+    }
+
+    private static void drawBoard(boolean isWhitePerspective) {
+        String[] pieces = {
+                "r n b q k b n r",
+                "p p p p p p p p",
+                ". . . . . . . .",
+                ". . . . . . . .",
+                ". . . . . . . .",
+                ". . . . . . . .",
+                "P P P P P P P P",
+                "R N B Q K B N R"
+        };
+
+        if (!isWhitePerspective) {
+            for (int i = 0; i < 4; i++) {
+                String temp = pieces[i];
+                pieces[i] = pieces[7 - i];
+                pieces[7 - i] = temp;
+            }
+        }
+
+        for (int row = 0; row < 8; row++) {
+            int displayRow = isWhitePerspective ? 8 - row : row + 1;
+            System.out.print(displayRow + " ");
+
+            String[] cols = pieces[row].split(" ");
+            for (int col = 0; col < 8; col++) {
+                int index = isWhitePerspective ? col : 7 - col;
+                System.out.print(cols[index] + " ");
+            }
+
+            System.out.println();
+        }
+
+        System.out.println("  a b c d e f g h");
     }
 
     private static void printPreloginHelp() {
