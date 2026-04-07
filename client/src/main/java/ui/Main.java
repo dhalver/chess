@@ -65,14 +65,14 @@ public class Main {
 
     private static void login() {
         try {
-            System.out.print("Username: ");
+            System.out.print("Enter username: ");
             String username = scanner.nextLine().trim();
             if (username.isEmpty()) {
                 System.out.println("Username cannot be blank.");
                 return;
             }
 
-            System.out.print("Password: ");
+            System.out.print("Enter password: ");
             String password = scanner.nextLine().trim();
             if (password.isEmpty()) {
                 System.out.println("Password cannot be blank.");
@@ -88,21 +88,21 @@ public class Main {
 
     private static void register() {
         try {
-            System.out.print("Username: ");
+            System.out.print("Enter username: ");
             String username = scanner.nextLine().trim();
             if (username.isEmpty()) {
                 System.out.println("Username cannot be blank.");
                 return;
             }
 
-            System.out.print("Password: ");
+            System.out.print("Enter password: ");
             String password = scanner.nextLine().trim();
             if (password.isEmpty()) {
                 System.out.println("Password cannot be blank.");
                 return;
             }
 
-            System.out.print("Email: ");
+            System.out.print("Enter email: ");
             String email = scanner.nextLine().trim();
             if (email.isEmpty()) {
                 System.out.println("Email cannot be blank.");
