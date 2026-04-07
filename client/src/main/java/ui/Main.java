@@ -12,8 +12,8 @@ public class Main {
 
     private static final ServerFacade FACADE = new ServerFacade(8080);
     private static final Scanner SCANNER = new Scanner(System.in);
-    private static AuthData AUTHDATA = null;
-    private static List<GameSummary> LASTLISTEDGAMES = new ArrayList<>();
+    private static AuthData AuthData = null;
+    private static List<GameSummary> LastListedGames = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("Welcome to Chess!");
@@ -22,7 +22,7 @@ public class Main {
         boolean running = true;
 
         while (running) {
-            if (AUTHDATA == null) {
+            if (AuthData == null) {
                 System.out.print("[logged out] >>> ");
                 String input = SCANNER.nextLine().trim().toLowerCase();
 
@@ -79,8 +79,8 @@ public class Main {
                 return;
             }
 
-            AUTHDATA = FACADE.login(username, password);
-            System.out.println("Logged in as " + AUTHDATA.username() + ".");
+            AuthData = FACADE.login(username, password);
+            System.out.println("Logged in as " + AuthData.username() + ".");
         } catch (Exception e) {
             System.out.println("Login failed: " + e.getMessage());
         }
@@ -109,8 +109,8 @@ public class Main {
                 return;
             }
 
-            AUTHDATA = FACADE.register(username, password, email);
-            System.out.println("Registered and logged in as " + AUTHDATA.username() + ".");
+            AuthData = FACADE.register(username, password, email);
+            System.out.println("Registered and logged in as " + AuthData.username() + ".");
         } catch (Exception e) {
             System.out.println("Register failed: " + e.getMessage());
         }
@@ -118,9 +118,9 @@ public class Main {
 
     private static void logout() {
         try {
-            FACADE.logout(AUTHDATA.authToken());
-            AUTHDATA = null;
-            LASTLISTEDGAMES.clear();
+            FACADE.logout(AuthData.authToken());
+            AuthData = null;
+            LastListedGames.clear();
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -137,7 +137,7 @@ public class Main {
                 return;
             }
 
-            FACADE.createGame(AUTHDATA.authToken(), gameName);
+            FACADE.createGame(AuthData.authToken(), gameName);
             System.out.println("Game created.");
         } catch (Exception e) {
             System.out.println("Create failed: " + e.getMessage());
@@ -146,16 +146,16 @@ public class Main {
 
     private static void listGames() {
         try {
-            var response = FACADE.listGames(AUTHDATA.authToken());
-            LASTLISTEDGAMES = new ArrayList<>(response.games());
+            var response = FACADE.listGames(AuthData.authToken());
+            LastListedGames = new ArrayList<>(response.games());
 
-            if (LASTLISTEDGAMES.isEmpty()) {
+            if (LastListedGames.isEmpty()) {
                 System.out.println("No games found.");
                 return;
             }
 
-            for (int i = 0; i < LASTLISTEDGAMES.size(); i++) {
-                GameSummary game = LASTLISTEDGAMES.get(i);
+            for (int i = 0; i < LastListedGames.size(); i++) {
+                GameSummary game = LastListedGames.get(i);
 
                 String white = game.whiteUsername() == null ? "-" : game.whiteUsername();
                 String black = game.blackUsername() == null ? "-" : game.blackUsername();
@@ -173,7 +173,7 @@ public class Main {
 
     private static void playGame() {
         try {
-            if (LASTLISTEDGAMES.isEmpty()) {
+            if (LastListedGames.isEmpty()) {
                 System.out.println("No games listed. Use 'list' first.");
                 return;
             }
@@ -182,7 +182,7 @@ public class Main {
             String choiceInput = SCANNER.nextLine().trim();
             int choice = Integer.parseInt(choiceInput);
 
-            if (choice < 1 || choice > LASTLISTEDGAMES.size()) {
+            if (choice < 1 || choice > LastListedGames.size()) {
                 System.out.println("Invalid game number.");
                 return;
             }
@@ -195,8 +195,8 @@ public class Main {
                 return;
             }
 
-            int gameID = LASTLISTEDGAMES.get(choice - 1).gameID();
-            FACADE.joinGame(AUTHDATA.authToken(), gameID, color);
+            int gameID = LastListedGames.get(choice - 1).gameID();
+            FACADE.joinGame(AuthData.authToken(), gameID, color);
 
             System.out.println("Joined game as " + color + ".");
             drawBoard(color.equals("WHITE"));
@@ -210,7 +210,7 @@ public class Main {
 
     private static void observeGame() {
         try {
-            if (LASTLISTEDGAMES.isEmpty()) {
+            if (LastListedGames.isEmpty()) {
                 System.out.println("No games listed. Use 'list' first.");
                 return;
             }
@@ -219,7 +219,7 @@ public class Main {
             String choiceInput = SCANNER.nextLine().trim();
             int choice = Integer.parseInt(choiceInput);
 
-            if (choice < 1 || choice > LASTLISTEDGAMES.size()) {
+            if (choice < 1 || choice > LastListedGames.size()) {
                 System.out.println("Invalid game number.");
                 return;
             }
