@@ -10,10 +10,10 @@ import java.util.Scanner;
 
 public class Main {
 
-    private static final ServerFacade facade = new ServerFacade(8080);
-    private static final Scanner scanner = new Scanner(System.in);
-    private static AuthData authData = null;
-    private static List<GameSummary> lastListedGames = new ArrayList<>();
+    private static final ServerFacade FACADE = new ServerFacade(8080);
+    private static final Scanner SCANNER = new Scanner(System.in);
+    private static AuthData AUTHDATA = null;
+    private static List<GameSummary> LASTLISTEDGAMES = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("Welcome to Chess!");
@@ -22,9 +22,9 @@ public class Main {
         boolean running = true;
 
         while (running) {
-            if (authData == null) {
+            if (AUTHDATA == null) {
                 System.out.print("[logged out] >>> ");
-                String input = scanner.nextLine().trim().toLowerCase();
+                String input = SCANNER.nextLine().trim().toLowerCase();
 
                 if (input.isEmpty()) {
                     System.out.println("Please enter a command.");
@@ -43,7 +43,7 @@ public class Main {
                 }
             } else {
                 System.out.print("[logged in] >>> ");
-                String input = scanner.nextLine().trim().toLowerCase();
+                String input = SCANNER.nextLine().trim().toLowerCase();
 
                 if (input.isEmpty()) {
                     System.out.println("Please enter a command.");
@@ -66,21 +66,21 @@ public class Main {
     private static void login() {
         try {
             System.out.print("Enter username: ");
-            String username = scanner.nextLine().trim();
+            String username = SCANNER.nextLine().trim();
             if (username.isEmpty()) {
                 System.out.println("Username cannot be blank.");
                 return;
             }
 
             System.out.print("Enter password: ");
-            String password = scanner.nextLine().trim();
+            String password = SCANNER.nextLine().trim();
             if (password.isEmpty()) {
                 System.out.println("Password cannot be blank.");
                 return;
             }
 
-            authData = facade.login(username, password);
-            System.out.println("Logged in as " + authData.username() + ".");
+            AUTHDATA = FACADE.login(username, password);
+            System.out.println("Logged in as " + AUTHDATA.username() + ".");
         } catch (Exception e) {
             System.out.println("Login failed: " + e.getMessage());
         }
@@ -89,28 +89,28 @@ public class Main {
     private static void register() {
         try {
             System.out.print("Enter username: ");
-            String username = scanner.nextLine().trim();
+            String username = SCANNER.nextLine().trim();
             if (username.isEmpty()) {
                 System.out.println("Username cannot be blank.");
                 return;
             }
 
             System.out.print("Enter password: ");
-            String password = scanner.nextLine().trim();
+            String password = SCANNER.nextLine().trim();
             if (password.isEmpty()) {
                 System.out.println("Password cannot be blank.");
                 return;
             }
 
             System.out.print("Enter email: ");
-            String email = scanner.nextLine().trim();
+            String email = SCANNER.nextLine().trim();
             if (email.isEmpty()) {
                 System.out.println("Email cannot be blank.");
                 return;
             }
 
-            authData = facade.register(username, password, email);
-            System.out.println("Registered and logged in as " + authData.username() + ".");
+            AUTHDATA = FACADE.register(username, password, email);
+            System.out.println("Registered and logged in as " + AUTHDATA.username() + ".");
         } catch (Exception e) {
             System.out.println("Register failed: " + e.getMessage());
         }
@@ -118,9 +118,9 @@ public class Main {
 
     private static void logout() {
         try {
-            facade.logout(authData.authToken());
-            authData = null;
-            lastListedGames.clear();
+            FACADE.logout(AUTHDATA.authToken());
+            AUTHDATA = null;
+            LASTLISTEDGAMES.clear();
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -130,14 +130,14 @@ public class Main {
     private static void createGame() {
         try {
             System.out.print("Game name: ");
-            String gameName = scanner.nextLine().trim();
+            String gameName = SCANNER.nextLine().trim();
 
             if (gameName.isEmpty()) {
                 System.out.println("Game name cannot be blank.");
                 return;
             }
 
-            facade.createGame(authData.authToken(), gameName);
+            FACADE.createGame(AUTHDATA.authToken(), gameName);
             System.out.println("Game created.");
         } catch (Exception e) {
             System.out.println("Create failed: " + e.getMessage());
@@ -146,16 +146,16 @@ public class Main {
 
     private static void listGames() {
         try {
-            var response = facade.listGames(authData.authToken());
-            lastListedGames = new ArrayList<>(response.games());
+            var response = FACADE.listGames(AUTHDATA.authToken());
+            LASTLISTEDGAMES = new ArrayList<>(response.games());
 
-            if (lastListedGames.isEmpty()) {
+            if (LASTLISTEDGAMES.isEmpty()) {
                 System.out.println("No games found.");
                 return;
             }
 
-            for (int i = 0; i < lastListedGames.size(); i++) {
-                GameSummary game = lastListedGames.get(i);
+            for (int i = 0; i < LASTLISTEDGAMES.size(); i++) {
+                GameSummary game = LASTLISTEDGAMES.get(i);
 
                 String white = game.whiteUsername() == null ? "-" : game.whiteUsername();
                 String black = game.blackUsername() == null ? "-" : game.blackUsername();
@@ -173,30 +173,30 @@ public class Main {
 
     private static void playGame() {
         try {
-            if (lastListedGames.isEmpty()) {
+            if (LASTLISTEDGAMES.isEmpty()) {
                 System.out.println("No games listed. Use 'list' first.");
                 return;
             }
 
             System.out.print("Enter game number: ");
-            String choiceInput = scanner.nextLine().trim();
+            String choiceInput = SCANNER.nextLine().trim();
             int choice = Integer.parseInt(choiceInput);
 
-            if (choice < 1 || choice > lastListedGames.size()) {
+            if (choice < 1 || choice > LASTLISTEDGAMES.size()) {
                 System.out.println("Invalid game number.");
                 return;
             }
 
             System.out.print("Enter color (WHITE or BLACK): ");
-            String color = scanner.nextLine().trim().toUpperCase();
+            String color = SCANNER.nextLine().trim().toUpperCase();
 
             if (!color.equals("WHITE") && !color.equals("BLACK")) {
                 System.out.println("Invalid color.");
                 return;
             }
 
-            int gameID = lastListedGames.get(choice - 1).gameID();
-            facade.joinGame(authData.authToken(), gameID, color);
+            int gameID = LASTLISTEDGAMES.get(choice - 1).gameID();
+            FACADE.joinGame(AUTHDATA.authToken(), gameID, color);
 
             System.out.println("Joined game as " + color + ".");
             drawBoard(color.equals("WHITE"));
@@ -210,16 +210,16 @@ public class Main {
 
     private static void observeGame() {
         try {
-            if (lastListedGames.isEmpty()) {
+            if (LASTLISTEDGAMES.isEmpty()) {
                 System.out.println("No games listed. Use 'list' first.");
                 return;
             }
 
             System.out.print("Enter game number: ");
-            String choiceInput = scanner.nextLine().trim();
+            String choiceInput = SCANNER.nextLine().trim();
             int choice = Integer.parseInt(choiceInput);
 
-            if (choice < 1 || choice > lastListedGames.size()) {
+            if (choice < 1 || choice > LASTLISTEDGAMES.size()) {
                 System.out.println("Invalid game number.");
                 return;
             }
@@ -262,7 +262,9 @@ public class Main {
                 String color = isLight ? LIGHT : DARK;
 
                 String piece = board[r][c];
-                if (piece.equals(".")) piece = " ";
+                if (piece.equals(".")) {
+                    piece = " ";
+                }
 
                 System.out.print(color + " " + piece + " " + RESET);
             }
