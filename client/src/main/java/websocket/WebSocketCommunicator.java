@@ -1,5 +1,6 @@
 package websocket;
 
+import com.google.gson.Gson;
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.ContainerProvider;
 import jakarta.websocket.OnMessage;
@@ -12,6 +13,7 @@ import java.net.URI;
 @ClientEndpoint
 public class WebSocketCommunicator {
 
+    private final Gson gson = new Gson();
     private Session session;
 
     public WebSocketCommunicator(String url) {
@@ -34,11 +36,12 @@ public class WebSocketCommunicator {
         System.out.println("Received: " + message);
     }
 
-    public void send(String message) {
+    public void sendCommand(UserGameCommand command) {
         try {
-            session.getBasicRemote().sendText(message);
+            String json = gson.toJson(command);
+            session.getBasicRemote().sendText(json);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send WebSocket message", e);
+            throw new RuntimeException("Failed to send WebSocket command", e);
         }
     }
 }

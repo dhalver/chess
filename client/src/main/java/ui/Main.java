@@ -3,6 +3,8 @@ package ui;
 import client.ServerFacade;
 import model.AuthData;
 import server.GameSummary;
+import websocket.UserGameCommand;
+import websocket.WebSocketCommunicator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,11 @@ public class Main {
     private static final Scanner SCANNER = new Scanner(System.in);
     private static AuthData authData;
     private static List<GameSummary> lastListedGames = new ArrayList<>();
+    private static WebSocketCommunicator communicator;
+
+    private static final String LIGHT = "\u001B[47m";
+    private static final String DARK = "\u001B[46m";
+    private static final String RESET = "\u001B[0m";
 
     public static void main(String[] args) {
         System.out.println("Welcome to Chess!");
@@ -121,6 +128,7 @@ public class Main {
             FACADE.logout(authData.authToken());
             authData = null;
             lastListedGames.clear();
+            communicator = null;
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -199,7 +207,7 @@ public class Main {
             FACADE.joinGame(authData.authToken(), gameID, color);
 
             System.out.println("Joined game as " + color + ".");
-            drawBoard(color.equals("WHITE"));
+            connectToGameplay(gameID);
 
         } catch (NumberFormatException e) {
             System.out.println("Invalid game number.");
@@ -224,8 +232,9 @@ public class Main {
                 return;
             }
 
+            int gameID = lastListedGames.get(choice - 1).gameID();
             System.out.println("Observing game.");
-            drawBoard(true);
+            connectToGameplay(gameID);
 
         } catch (NumberFormatException e) {
             System.out.println("Invalid game number.");
@@ -234,20 +243,33 @@ public class Main {
         }
     }
 
-    private static final String LIGHT = "\u001B[47m";
-    private static final String DARK = "\u001B[46m";
-    private static final String RESET = "\u001B[0m";
+    private static void connectToGameplay(Integer gameID) {
+        try {
+            communicator = new WebSocketCommunicator("ws://localhost:8080/ws");
+
+            UserGameCommand command = new UserGameCommand(
+                    UserGameCommand.CommandType.CONNECT,
+                    authData.authToken(),
+                    gameID
+            );
+
+            communicator.sendCommand(command);
+            System.out.println("Connected to game via WebSocket.");
+        } catch (Exception e) {
+            System.out.println("WebSocket connect failed: " + e.getMessage());
+        }
+    }
 
     private static void drawBoard(boolean isWhitePerspective) {
         String[][] board = {
-                {"r","n","b","q","k","b","n","r"},
-                {"p","p","p","p","p","p","p","p"},
-                {".",".",".",".",".",".",".","."},
-                {".",".",".",".",".",".",".","."},
-                {".",".",".",".",".",".",".","."},
-                {".",".",".",".",".",".",".","."},
-                {"P","P","P","P","P","P","P","P"},
-                {"R","N","B","Q","K","B","N","R"}
+                {"r", "n", "b", "q", "k", "b", "n", "r"},
+                {"p", "p", "p", "p", "p", "p", "p", "p"},
+                {".", ".", ".", ".", ".", ".", ".", "."},
+                {".", ".", ".", ".", ".", ".", ".", "."},
+                {".", ".", ".", ".", ".", ".", ".", "."},
+                {".", ".", ".", ".", ".", ".", ".", "."},
+                {"P", "P", "P", "P", "P", "P", "P", "P"},
+                {"R", "N", "B", "Q", "K", "B", "N", "R"}
         };
 
         for (int row = 0; row < 8; row++) {
