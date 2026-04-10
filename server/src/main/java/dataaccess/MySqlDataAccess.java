@@ -115,7 +115,7 @@ public class MySqlDataAccess implements DataAccess {
                 if (rs.next()) {
                     return new UserData(
                             rs.getString("username"),
-                            rs.getString("password_hash"), // NOTE: this is hashed password
+                            rs.getString("password_hash"),
                             rs.getString("email")
                     );
                 }
