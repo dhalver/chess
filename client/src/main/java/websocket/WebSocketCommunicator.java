@@ -7,6 +7,7 @@ import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
+import ui.Main;
 
 import java.net.URI;
 
@@ -36,9 +37,18 @@ public class WebSocketCommunicator {
         ServerMessage serverMessage = gson.fromJson(message, ServerMessage.class);
 
         switch (serverMessage.getServerMessageType()) {
-            case LOAD_GAME -> System.out.println("Game loaded!");
-            case NOTIFICATION -> System.out.println("Notification received");
-            case ERROR -> System.out.println("Error received");
+            case LOAD_GAME -> {
+                System.out.println("Game loaded.");
+                Main.handleLoadGame(message);
+            }
+            case NOTIFICATION -> {
+                System.out.println("Notification received.");
+                Main.handleNotification(message);
+            }
+            case ERROR -> {
+                System.out.println("Error received.");
+                Main.handleError(message);
+            }
         }
     }
 
@@ -50,5 +60,4 @@ public class WebSocketCommunicator {
             throw new RuntimeException("Failed to send WebSocket command", e);
         }
     }
-
 }

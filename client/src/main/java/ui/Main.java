@@ -260,6 +260,19 @@ public class Main {
         }
     }
 
+    public static void handleLoadGame(String message) {
+        System.out.println("LOAD_GAME received.");
+        drawBoard(true);
+    }
+
+    public static void handleNotification(String message) {
+        System.out.println("NOTIFICATION: " + message);
+    }
+
+    public static void handleError(String message) {
+        System.out.println("ERROR: " + message);
+    }
+
     private static void drawBoard(boolean isWhitePerspective) {
         String[][] board = {
                 {"r", "n", "b", "q", "k", "b", "n", "r"},
