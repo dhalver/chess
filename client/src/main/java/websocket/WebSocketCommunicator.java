@@ -33,7 +33,13 @@ public class WebSocketCommunicator {
 
     @OnMessage
     public void onMessage(String message) {
-        System.out.println("Received: " + message);
+        ServerMessage serverMessage = gson.fromJson(message, ServerMessage.class);
+
+        switch (serverMessage.getServerMessageType()) {
+            case LOAD_GAME -> System.out.println("Game loaded!");
+            case NOTIFICATION -> System.out.println("Notification received");
+            case ERROR -> System.out.println("Error received");
+        }
     }
 
     public void sendCommand(UserGameCommand command) {
@@ -44,5 +50,5 @@ public class WebSocketCommunicator {
             throw new RuntimeException("Failed to send WebSocket command", e);
         }
     }
-    
+
 }
