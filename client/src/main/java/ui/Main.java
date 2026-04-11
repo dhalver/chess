@@ -1,6 +1,11 @@
 package ui;
 
+import chess.ChessGame;
+import chess.ChessPiece;
+import chess.ChessPosition;
 import client.ServerFacade;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import model.AuthData;
 import server.GameSummary;
 import websocket.UserGameCommand;
@@ -14,9 +19,13 @@ public class Main {
 
     private static final ServerFacade FACADE = new ServerFacade(8080);
     private static final Scanner SCANNER = new Scanner(System.in);
+    private static final Gson GSON = new Gson();
+
     private static AuthData authData;
     private static List<GameSummary> lastListedGames = new ArrayList<>();
     private static WebSocketCommunicator communicator;
+    private static ChessGame currentGame;
+    private static boolean whitePerspective = true;
 
     private static final String LIGHT = "\u001B[47m";
     private static final String DARK = "\u001B[46m";
@@ -129,6 +138,8 @@ public class Main {
             authData = null;
             lastListedGames.clear();
             communicator = null;
+            currentGame = null;
+            whitePerspective = true;
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -137,7 +148,7 @@ public class Main {
 
     private static void createGame() {
         try {
-            System.out.print("Game name: ");
+            System.out.print("Enter game name: ");
             String gameName = SCANNER.nextLine().trim();
 
             if (gameName.isEmpty()) {
@@ -206,6 +217,8 @@ public class Main {
             int gameID = lastListedGames.get(choice - 1).gameID();
             FACADE.joinGame(authData.authToken(), gameID, color);
 
+            whitePerspective = color.equals("WHITE");
+
             System.out.println("Joined game as " + color + ".");
             connectToGameplay(gameID);
 
@@ -233,6 +246,8 @@ public class Main {
             }
 
             int gameID = lastListedGames.get(choice - 1).gameID();
+            whitePerspective = true;
+
             System.out.println("Observing game.");
             connectToGameplay(gameID);
 
@@ -261,52 +276,87 @@ public class Main {
     }
 
     public static void handleLoadGame(String message) {
-        System.out.println("LOAD_GAME received.");
-        drawBoard(true);
+        try {
+            JsonObject json = GSON.fromJson(message, JsonObject.class);
+            currentGame = GSON.fromJson(json.get("game"), ChessGame.class);
+            System.out.println("Game loaded.");
+            drawBoard(whitePerspective);
+        } catch (Exception e) {
+            System.out.println("Failed to load game: " + e.getMessage());
+        }
     }
 
     public static void handleNotification(String message) {
-        System.out.println("NOTIFICATION: " + message);
+        try {
+            JsonObject json = GSON.fromJson(message, JsonObject.class);
+            String notification = json.has("message") && !json.get("message").isJsonNull()
+                    ? json.get("message").getAsString()
+                    : message;
+            System.out.println(notification);
+        } catch (Exception e) {
+            System.out.println("Notification: " + message);
+        }
     }
 
     public static void handleError(String message) {
-        System.out.println("ERROR: " + message);
+        try {
+            JsonObject json = GSON.fromJson(message, JsonObject.class);
+            String errorMessage = json.has("errorMessage") && !json.get("errorMessage").isJsonNull()
+                    ? json.get("errorMessage").getAsString()
+                    : message;
+            System.out.println(errorMessage);
+        } catch (Exception e) {
+            System.out.println("Error: " + message);
+        }
     }
 
     private static void drawBoard(boolean isWhitePerspective) {
-        String[][] board = {
-                {"r", "n", "b", "q", "k", "b", "n", "r"},
-                {"p", "p", "p", "p", "p", "p", "p", "p"},
-                {".", ".", ".", ".", ".", ".", ".", "."},
-                {".", ".", ".", ".", ".", ".", ".", "."},
-                {".", ".", ".", ".", ".", ".", ".", "."},
-                {".", ".", ".", ".", ".", ".", ".", "."},
-                {"P", "P", "P", "P", "P", "P", "P", "P"},
-                {"R", "N", "B", "Q", "K", "B", "N", "R"}
-        };
+        if (currentGame == null) {
+            System.out.println("No game loaded.");
+            return;
+        }
+
+        var board = currentGame.getBoard();
 
         for (int row = 0; row < 8; row++) {
             int displayRow = isWhitePerspective ? 8 - row : row + 1;
             System.out.print(displayRow + " ");
 
             for (int col = 0; col < 8; col++) {
-                int r = isWhitePerspective ? row : 7 - row;
-                int c = isWhitePerspective ? col : 7 - col;
+                int boardRow = isWhitePerspective ? row : 7 - row;
+                int boardCol = isWhitePerspective ? col : 7 - col;
+
+                ChessPiece piece = board.getPiece(new ChessPosition(boardRow + 1, boardCol + 1));
+
+                String symbol = " ";
+                if (piece != null) {
+                    symbol = getPieceSymbol(piece);
+                }
 
                 boolean isLight = (row + col) % 2 == 0;
                 String color = isLight ? LIGHT : DARK;
 
-                String piece = board[r][c];
-                if (piece.equals(".")) {
-                    piece = " ";
-                }
-
-                System.out.print(color + " " + piece + " " + RESET);
+                System.out.print(color + " " + symbol + " " + RESET);
             }
             System.out.println();
         }
 
-        System.out.println("   a  b  c  d  e  f  g  h");
+        if (isWhitePerspective) {
+            System.out.println("   a  b  c  d  e  f  g  h");
+        } else {
+            System.out.println("   h  g  f  e  d  c  b  a");
+        }
+    }
+
+    private static String getPieceSymbol(ChessPiece piece) {
+        return switch (piece.getPieceType()) {
+            case KING -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "K" : "k";
+            case QUEEN -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "Q" : "q";
+            case ROOK -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "R" : "r";
+            case BISHOP -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "B" : "b";
+            case KNIGHT -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "N" : "n";
+            case PAWN -> piece.getTeamColor() == ChessGame.TeamColor.WHITE ? "P" : "p";
+        };
     }
 
     private static void printPreloginHelp() {
