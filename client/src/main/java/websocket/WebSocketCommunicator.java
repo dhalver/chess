@@ -44,4 +44,5 @@ public class WebSocketCommunicator {
             throw new RuntimeException("Failed to send WebSocket command", e);
         }
     }
+    
 }
