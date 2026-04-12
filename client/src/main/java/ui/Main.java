@@ -7,7 +7,7 @@ import client.ServerFacade;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
-import server.GameSummary;
+import model.GameSummary;
 import websocket.UserGameCommand;
 import websocket.WebSocketCommunicator;
 
@@ -26,6 +26,7 @@ public class Main {
     private static WebSocketCommunicator communicator;
     private static ChessGame currentGame;
     private static boolean whitePerspective = true;
+    private static boolean inGameplay = false;
 
     private static final String LIGHT = "\u001B[47m";
     private static final String DARK = "\u001B[46m";
@@ -38,6 +39,11 @@ public class Main {
         boolean running = true;
 
         while (running) {
+            if (inGameplay) {
+                runGameplayLoop();
+                continue;
+            }
+
             if (authData == null) {
                 System.out.print("[logged out] >>> ");
                 String input = SCANNER.nextLine().trim().toLowerCase();
@@ -75,6 +81,28 @@ public class Main {
                     case "observe" -> observeGame();
                     default -> System.out.println("Unknown command. Type 'help'.");
                 }
+            }
+        }
+    }
+
+    private static void runGameplayLoop() {
+        while (inGameplay) {
+            System.out.print("[gameplay] >>> ");
+            String input = SCANNER.nextLine().trim().toLowerCase();
+
+            if (input.isEmpty()) {
+                System.out.println("Please enter a command.");
+                continue;
+            }
+
+            switch (input) {
+                case "help" -> printGameplayHelp();
+                case "redraw" -> drawBoard(whitePerspective);
+                case "leave" -> leaveGame();
+                case "resign" -> resignGame();
+                case "move" -> System.out.println("Move not implemented yet.");
+                case "highlight" -> System.out.println("Highlight not implemented yet.");
+                default -> System.out.println("Unknown command. Type 'help'.");
             }
         }
     }
@@ -140,6 +168,7 @@ public class Main {
             communicator = null;
             currentGame = null;
             whitePerspective = true;
+            inGameplay = false;
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -269,9 +298,56 @@ public class Main {
             );
 
             communicator.sendCommand(command);
+            inGameplay = true;
             System.out.println("Connected to game via WebSocket.");
         } catch (Exception e) {
             System.out.println("WebSocket connect failed: " + e.getMessage());
+        }
+    }
+
+    private static void leaveGame() {
+        try {
+            if (communicator != null) {
+                UserGameCommand command = new UserGameCommand(
+                        UserGameCommand.CommandType.LEAVE,
+                        authData.authToken(),
+                        null
+                );
+                communicator.sendCommand(command);
+            }
+
+            inGameplay = false;
+            communicator = null;
+            currentGame = null;
+            whitePerspective = true;
+            System.out.println("Left game.");
+        } catch (Exception e) {
+            System.out.println("Leave failed: " + e.getMessage());
+        }
+    }
+
+    private static void resignGame() {
+        try {
+            System.out.print("Are you sure you want to resign? (yes/no): ");
+            String answer = SCANNER.nextLine().trim().toLowerCase();
+
+            if (!answer.equals("yes")) {
+                System.out.println("Resign canceled.");
+                return;
+            }
+
+            if (communicator != null) {
+                UserGameCommand command = new UserGameCommand(
+                        UserGameCommand.CommandType.RESIGN,
+                        authData.authToken(),
+                        null
+                );
+                communicator.sendCommand(command);
+            }
+
+            System.out.println("Resign command sent.");
+        } catch (Exception e) {
+            System.out.println("Resign failed: " + e.getMessage());
         }
     }
 
@@ -378,6 +454,18 @@ public class Main {
                 list      - list games
                 play      - play a game
                 observe   - observe a game
+                """);
+    }
+
+    private static void printGameplayHelp() {
+        System.out.println("""
+                Commands:
+                help       - show this message
+                redraw     - redraw the chess board
+                leave      - leave the game
+                resign     - resign the game
+                move       - make a move
+                highlight  - highlight legal moves
                 """);
     }
 
