@@ -8,8 +8,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
 import server.GameSummary;
-import websocket.commands.UserGameCommand;
 import websocket.WebSocketCommunicator;
+import websocket.commands.UserGameCommand;
 
 import java.util.ArrayList;
 import java.util.List;
