@@ -13,6 +13,7 @@ import service.ClearService;
 import service.GameService;
 import service.ServiceException;
 import service.UserService;
+import websocket.WebSocketHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,6 +23,7 @@ public class Server {
     private final Javalin app;
     private final DataAccess dataAccess;
     private final Gson gson;
+    private final WebSocketHandler webSocketHandler;
 
     public Server() {
         try {
@@ -31,11 +33,20 @@ public class Server {
         }
 
         this.gson = new Gson();
+        this.webSocketHandler = new WebSocketHandler();
+
         this.app = Javalin.create(config -> config.staticFiles.add("web"));
 
         registerClearEndpoint();
         registerUserEndpoints();
         registerGameEndpoints();
+        registerWebSocketEndpoint();
+    }
+
+    private void registerWebSocketEndpoint() {
+        app.ws("/ws", ws -> {
+            ws.onMessage(webSocketHandler::onMessage);
+        });
     }
 
     private void registerClearEndpoint() {
