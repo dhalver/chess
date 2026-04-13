@@ -8,6 +8,8 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
 import ui.Main;
+import websocket.commands.UserGameCommand;
+import websocket.messages.ServerMessage;
 
 import java.net.URI;
 
@@ -37,18 +39,9 @@ public class WebSocketCommunicator {
         ServerMessage serverMessage = gson.fromJson(message, ServerMessage.class);
 
         switch (serverMessage.getServerMessageType()) {
-            case LOAD_GAME -> {
-                System.out.println("Game loaded.");
-                Main.handleLoadGame(message);
-            }
-            case NOTIFICATION -> {
-                System.out.println("Notification received.");
-                Main.handleNotification(message);
-            }
-            case ERROR -> {
-                System.out.println("Error received.");
-                Main.handleError(message);
-            }
+            case LOAD_GAME -> Main.handleLoadGame(message);
+            case NOTIFICATION -> Main.handleNotification(message);
+            case ERROR -> Main.handleError(message);
         }
     }
 

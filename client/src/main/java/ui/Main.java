@@ -7,8 +7,8 @@ import client.ServerFacade;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import model.AuthData;
-import model.GameSummary;
-import websocket.UserGameCommand;
+import server.GameSummary;
+import websocket.commands.UserGameCommand;
 import websocket.WebSocketCommunicator;
 
 import java.util.ArrayList;
@@ -27,6 +27,7 @@ public class Main {
     private static ChessGame currentGame;
     private static boolean whitePerspective = true;
     private static boolean inGameplay = false;
+    private static Integer activeGameId = null;
 
     private static final String LIGHT = "\u001B[47m";
     private static final String DARK = "\u001B[46m";
@@ -163,12 +164,9 @@ public class Main {
     private static void logout() {
         try {
             FACADE.logout(authData.authToken());
+            resetGameplayState();
             authData = null;
             lastListedGames.clear();
-            communicator = null;
-            currentGame = null;
-            whitePerspective = true;
-            inGameplay = false;
             System.out.println("Logged out.");
         } catch (Exception e) {
             System.out.println("Logout failed: " + e.getMessage());
@@ -247,6 +245,7 @@ public class Main {
             FACADE.joinGame(authData.authToken(), gameID, color);
 
             whitePerspective = color.equals("WHITE");
+            activeGameId = gameID;
 
             System.out.println("Joined game as " + color + ".");
             connectToGameplay(gameID);
@@ -275,7 +274,9 @@ public class Main {
             }
 
             int gameID = lastListedGames.get(choice - 1).gameID();
+
             whitePerspective = true;
+            activeGameId = gameID;
 
             System.out.println("Observing game.");
             connectToGameplay(gameID);
@@ -307,19 +308,16 @@ public class Main {
 
     private static void leaveGame() {
         try {
-            if (communicator != null) {
+            if (communicator != null && activeGameId != null) {
                 UserGameCommand command = new UserGameCommand(
                         UserGameCommand.CommandType.LEAVE,
                         authData.authToken(),
-                        null
+                        activeGameId
                 );
                 communicator.sendCommand(command);
             }
 
-            inGameplay = false;
-            communicator = null;
-            currentGame = null;
-            whitePerspective = true;
+            resetGameplayState();
             System.out.println("Left game.");
         } catch (Exception e) {
             System.out.println("Leave failed: " + e.getMessage());
@@ -336,11 +334,11 @@ public class Main {
                 return;
             }
 
-            if (communicator != null) {
+            if (communicator != null && activeGameId != null) {
                 UserGameCommand command = new UserGameCommand(
                         UserGameCommand.CommandType.RESIGN,
                         authData.authToken(),
-                        null
+                        activeGameId
                 );
                 communicator.sendCommand(command);
             }
@@ -349,6 +347,14 @@ public class Main {
         } catch (Exception e) {
             System.out.println("Resign failed: " + e.getMessage());
         }
+    }
+
+    private static void resetGameplayState() {
+        communicator = null;
+        currentGame = null;
+        whitePerspective = true;
+        inGameplay = false;
+        activeGameId = null;
     }
 
     public static void handleLoadGame(String message) {
@@ -467,13 +473,5 @@ public class Main {
                 move       - make a move
                 highlight  - highlight legal moves
                 """);
-    }
-
-    public static AuthData getAuthData() {
-        return authData;
-    }
-
-    public static void setAuthData(AuthData authData) {
-        Main.authData = authData;
     }
 }
