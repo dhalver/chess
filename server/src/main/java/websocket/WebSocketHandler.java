@@ -25,22 +25,26 @@ public class WebSocketHandler {
         }
     }
 
+   
     public void onMessage(WsMessageContext ctx) {
         try {
             UserGameCommand command = GSON.fromJson(ctx.message(), UserGameCommand.class);
 
             switch (command.getCommandType()) {
                 case CONNECT -> connect(ctx, command);
+                case LEAVE -> leave(ctx, command);
                 case MAKE_MOVE -> sendError(ctx, "Error: MAKE_MOVE not implemented yet.");
-                case LEAVE -> sendError(ctx, "Error: LEAVE not implemented yet.");
                 case RESIGN -> sendError(ctx, "Error: RESIGN not implemented yet.");
             }
+
         } catch (Exception e) {
             sendError(ctx, "Error: " + e.getMessage());
         }
     }
 
+
     private void connect(WsContext ctx, UserGameCommand command) throws DataAccessException {
+
         AuthData auth = dataAccess.getAuth(command.getAuthToken());
         if (auth == null) {
             sendError(ctx, "Error: invalid auth token");
@@ -79,8 +83,43 @@ public class WebSocketHandler {
                 notificationText
         );
 
-        CONNECTIONS.broadcastExcept(command.getGameID(), auth.username(), GSON.toJson(notification));
+        CONNECTIONS.broadcastExcept(
+                command.getGameID(),
+                auth.username(),
+                GSON.toJson(notification)
+        );
     }
+
+
+    private void leave(WsContext ctx, UserGameCommand command) throws DataAccessException {
+
+        AuthData auth = dataAccess.getAuth(command.getAuthToken());
+        if (auth == null) {
+            sendError(ctx, "Error: invalid auth token");
+            return;
+        }
+
+        GameData game = dataAccess.getGame(command.getGameID());
+        if (game == null) {
+            sendError(ctx, "Error: invalid game id");
+            return;
+        }
+
+        CONNECTIONS.remove(command.getGameID(), auth.username());
+
+        ServerMessage notification = new ServerMessage(
+                ServerMessage.ServerMessageType.NOTIFICATION,
+                null,
+                null,
+                auth.username() + " has left the game"
+        );
+
+        CONNECTIONS.broadcast(
+                command.getGameID(),
+                GSON.toJson(notification)
+        );
+    }
+
 
     private void sendError(WsContext ctx, String message) {
         ServerMessage error = new ServerMessage(
