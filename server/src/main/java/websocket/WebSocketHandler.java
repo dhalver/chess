@@ -25,7 +25,6 @@ public class WebSocketHandler {
         }
     }
 
-   
     public void onMessage(WsMessageContext ctx) {
         try {
             UserGameCommand command = GSON.fromJson(ctx.message(), UserGameCommand.class);
@@ -33,8 +32,8 @@ public class WebSocketHandler {
             switch (command.getCommandType()) {
                 case CONNECT -> connect(ctx, command);
                 case LEAVE -> leave(ctx, command);
+                case RESIGN -> resign(ctx, command);
                 case MAKE_MOVE -> sendError(ctx, "Error: MAKE_MOVE not implemented yet.");
-                case RESIGN -> sendError(ctx, "Error: RESIGN not implemented yet.");
             }
 
         } catch (Exception e) {
@@ -42,9 +41,7 @@ public class WebSocketHandler {
         }
     }
 
-
     private void connect(WsContext ctx, UserGameCommand command) throws DataAccessException {
-
         AuthData auth = dataAccess.getAuth(command.getAuthToken());
         if (auth == null) {
             sendError(ctx, "Error: invalid auth token");
@@ -90,9 +87,7 @@ public class WebSocketHandler {
         );
     }
 
-
     private void leave(WsContext ctx, UserGameCommand command) throws DataAccessException {
-
         AuthData auth = dataAccess.getAuth(command.getAuthToken());
         if (auth == null) {
             sendError(ctx, "Error: invalid auth token");
@@ -120,6 +115,47 @@ public class WebSocketHandler {
         );
     }
 
+    private void resign(WsContext ctx, UserGameCommand command) throws DataAccessException {
+        AuthData auth = dataAccess.getAuth(command.getAuthToken());
+        if (auth == null) {
+            sendError(ctx, "Error: invalid auth token");
+            return;
+        }
+
+        GameData game = dataAccess.getGame(command.getGameID());
+        if (game == null) {
+            sendError(ctx, "Error: invalid game id");
+            return;
+        }
+
+        if (game.game().isGameOver()) {
+            sendError(ctx, "Error: game is already over");
+            return;
+        }
+
+        boolean isPlayer = auth.username().equals(game.whiteUsername())
+                || auth.username().equals(game.blackUsername());
+
+        if (!isPlayer) {
+            sendError(ctx, "Error: only players can resign");
+            return;
+        }
+
+        game.game().setGameOver(true);
+        dataAccess.updateGame(game);
+
+        ServerMessage notification = new ServerMessage(
+                ServerMessage.ServerMessageType.NOTIFICATION,
+                null,
+                null,
+                auth.username() + " has resigned the game"
+        );
+
+        CONNECTIONS.broadcast(
+                command.getGameID(),
+                GSON.toJson(notification)
+        );
+    }
 
     private void sendError(WsContext ctx, String message) {
         ServerMessage error = new ServerMessage(
