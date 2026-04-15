@@ -9,9 +9,17 @@ public class ConnectionManager {
     private final Map<Integer, Map<String, WsContext>> connections = new ConcurrentHashMap<>();
 
     public void add(int gameID, String username, WsContext ctx) {
-        connections
-                .computeIfAbsent(gameID, id -> new ConcurrentHashMap<>())
-                .put(username, ctx);
+        Map<String, WsContext> gameConnections =
+                connections.computeIfAbsent(gameID, id -> new ConcurrentHashMap<>());
+
+        WsContext oldCtx = gameConnections.put(username, ctx);
+
+        if (oldCtx != null && oldCtx != ctx) {
+            try {
+                oldCtx.session.close();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     public void remove(int gameID, String username) {
@@ -24,14 +32,26 @@ public class ConnectionManager {
         }
     }
 
+    public void clear() {
+        connections.clear();
+    }
+
     public void broadcast(int gameID, String message) {
         Map<String, WsContext> gameConnections = connections.get(gameID);
         if (gameConnections == null) {
             return;
         }
 
-        for (WsContext ctx : gameConnections.values()) {
-            ctx.send(message);
+        for (var entry : gameConnections.entrySet()) {
+            try {
+                if (entry.getValue().session.isOpen()) {
+                    entry.getValue().send(message);
+                } else {
+                    remove(gameID, entry.getKey());
+                }
+            } catch (Exception ignored) {
+                remove(gameID, entry.getKey());
+            }
         }
     }
 
@@ -41,9 +61,17 @@ public class ConnectionManager {
             return;
         }
 
-        for (Map.Entry<String, WsContext> entry : gameConnections.entrySet()) {
+        for (var entry : gameConnections.entrySet()) {
             if (!entry.getKey().equals(excludedUsername)) {
-                entry.getValue().send(message);
+                try {
+                    if (entry.getValue().session.isOpen()) {
+                        entry.getValue().send(message);
+                    } else {
+                        remove(gameID, entry.getKey());
+                    }
+                } catch (Exception ignored) {
+                    remove(gameID, entry.getKey());
+                }
             }
         }
     }

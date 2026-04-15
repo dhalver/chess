@@ -1,5 +1,6 @@
 package websocket;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
@@ -13,7 +14,7 @@ import websocket.messages.ServerMessage;
 
 public class WebSocketHandler {
     private static final Gson GSON = new Gson();
-    private static final ConnectionManager CONNECTIONS = new ConnectionManager();
+    private final ConnectionManager connections = new ConnectionManager();
 
     private final DataAccess dataAccess;
 
@@ -54,7 +55,7 @@ public class WebSocketHandler {
             return;
         }
 
-        CONNECTIONS.add(command.getGameID(), auth.username(), ctx);
+        connections.add(command.getGameID(), auth.username(), ctx);
 
         ServerMessage loadGame = new ServerMessage(
                 ServerMessage.ServerMessageType.LOAD_GAME,
@@ -80,7 +81,7 @@ public class WebSocketHandler {
                 notificationText
         );
 
-        CONNECTIONS.broadcastExcept(
+        connections.broadcastExcept(
                 command.getGameID(),
                 auth.username(),
                 GSON.toJson(notification)
@@ -100,7 +101,7 @@ public class WebSocketHandler {
             return;
         }
 
-        CONNECTIONS.remove(command.getGameID(), auth.username());
+        connections.remove(command.getGameID(), auth.username());
 
         ServerMessage notification = new ServerMessage(
                 ServerMessage.ServerMessageType.NOTIFICATION,
@@ -109,7 +110,7 @@ public class WebSocketHandler {
                 auth.username() + " has left the game"
         );
 
-        CONNECTIONS.broadcast(
+        connections.broadcast(
                 command.getGameID(),
                 GSON.toJson(notification)
         );
@@ -151,23 +152,14 @@ public class WebSocketHandler {
                 auth.username() + " has resigned the game"
         );
 
-        CONNECTIONS.broadcast(
+        connections.broadcast(
                 command.getGameID(),
                 GSON.toJson(notification)
         );
     }
 
-    private void sendError(WsContext ctx, String message) {
-        ServerMessage error = new ServerMessage(
-                ServerMessage.ServerMessageType.ERROR,
-                null,
-                message,
-                null
-        );
-        ctx.send(GSON.toJson(error));
-    }
-
     private void makeMove(WsContext ctx, UserGameCommand command) throws DataAccessException {
+
         AuthData auth = dataAccess.getAuth(command.getAuthToken());
         if (auth == null) {
             sendError(ctx, "Error: invalid auth token");
@@ -185,17 +177,33 @@ public class WebSocketHandler {
             return;
         }
 
-        boolean isPlayer =
-                auth.username().equals(game.whiteUsername()) ||
-                        auth.username().equals(game.blackUsername());
+        boolean isPlayer = auth.username().equals(game.whiteUsername())
+                || auth.username().equals(game.blackUsername());
 
         if (!isPlayer) {
             sendError(ctx, "Error: observers cannot make moves");
             return;
         }
 
+        boolean isWhiteTurn = game.game().getTeamTurn() == ChessGame.TeamColor.WHITE;
+        boolean isCorrectTurn =
+                (isWhiteTurn && auth.username().equals(game.whiteUsername())) ||
+                        (!isWhiteTurn && auth.username().equals(game.blackUsername()));
+
+        if (!isCorrectTurn) {
+            sendError(ctx, "Error: not your turn");
+            return;
+        }
+
+        if (command.getMove() == null) {
+            sendError(ctx, "Error: invalid move");
+            return;
+        }
+
         try {
+            System.out.println("before game.makeMove");
             game.game().makeMove(command.getMove());
+            System.out.println("after game.makeMove");
         } catch (Exception e) {
             sendError(ctx, "Error: invalid move");
             return;
@@ -210,9 +218,12 @@ public class WebSocketHandler {
                 null
         );
 
-        CONNECTIONS.broadcast(command.getGameID(), GSON.toJson(loadGame));
+        connections.broadcast(command.getGameID(), GSON.toJson(loadGame));
 
-        String notificationText = auth.username() + " made a move";
+        String notificationText = auth.username() + " moved from "
+                + command.getMove().getStartPosition()
+                + " to "
+                + command.getMove().getEndPosition();
 
         ServerMessage notification = new ServerMessage(
                 ServerMessage.ServerMessageType.NOTIFICATION,
@@ -221,6 +232,20 @@ public class WebSocketHandler {
                 notificationText
         );
 
-        CONNECTIONS.broadcast(command.getGameID(), GSON.toJson(notification));
+        connections.broadcastExcept(
+                command.getGameID(),
+                auth.username(),
+                GSON.toJson(notification)
+        );
+    }
+
+    private void sendError(WsContext ctx, String message) {
+        ServerMessage error = new ServerMessage(
+                ServerMessage.ServerMessageType.ERROR,
+                null,
+                message,
+                null
+        );
+        ctx.send(GSON.toJson(error));
     }
 }
