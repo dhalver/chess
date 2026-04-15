@@ -1,6 +1,7 @@
 package ui;
 
 import chess.ChessGame;
+import chess.ChessMove;
 import chess.ChessPiece;
 import chess.ChessPosition;
 import client.ServerFacade;
@@ -101,7 +102,7 @@ public class Main {
                 case "redraw" -> drawBoard(whitePerspective);
                 case "leave" -> leaveGame();
                 case "resign" -> resignGame();
-                case "move" -> System.out.println("Move not implemented yet.");
+                case "move" -> makeMove();
                 case "highlight" -> System.out.println("Highlight not implemented yet.");
                 default -> System.out.println("Unknown command. Type 'help'.");
             }
@@ -316,11 +317,11 @@ public class Main {
                 );
                 communicator.sendCommand(command);
             }
-
-            resetGameplayState();
             System.out.println("Left game.");
         } catch (Exception e) {
             System.out.println("Leave failed: " + e.getMessage());
+        } finally {
+            resetGameplayState();
         }
     }
 
@@ -347,6 +348,75 @@ public class Main {
         } catch (Exception e) {
             System.out.println("Resign failed: " + e.getMessage());
         }
+    }
+
+    private static void makeMove() {
+        try {
+            if (communicator == null || activeGameId == null) {
+                System.out.println("Not connected to a game.");
+                return;
+            }
+
+            System.out.print("Enter start position (e.g. e2): ");
+            String startInput = SCANNER.nextLine().trim().toLowerCase();
+
+            System.out.print("Enter end position (e.g. e4): ");
+            String endInput = SCANNER.nextLine().trim().toLowerCase();
+
+            ChessPosition startPosition = parsePosition(startInput);
+            ChessPosition endPosition = parsePosition(endInput);
+            ChessPiece.PieceType promotionPiece = readPromotionPiece();
+
+            ChessMove move = new ChessMove(startPosition, endPosition, promotionPiece);
+
+            UserGameCommand command = new UserGameCommand(
+                    authData.authToken(),
+                    activeGameId,
+                    move
+            );
+
+            communicator.sendCommand(command);
+        } catch (IllegalArgumentException e) {
+            System.out.println(
+                    "Invalid move input. Use positions like e2 and e4, and press Enter for no promotion.");
+        } catch (Exception e) {
+            System.out.println("Move failed: " + e.getMessage());
+        }
+    }
+
+    private static ChessPosition parsePosition(String input) {
+        if (input.length() != 2) {
+            throw new IllegalArgumentException("Invalid position");
+        }
+
+        char file = input.charAt(0);
+        char rankChar = input.charAt(1);
+
+        if (file < 'a' || file > 'h' || rankChar < '1' || rankChar > '8') {
+            throw new IllegalArgumentException("Invalid position");
+        }
+
+        int column = file - 'a' + 1;
+        int row = rankChar - '0';
+
+        return new ChessPosition(row, column);
+    }
+
+    private static ChessPiece.PieceType readPromotionPiece() {
+        System.out.print("Promotion piece (QUEEN, ROOK, BISHOP, KNIGHT, or press Enter for none): ");
+        String input = SCANNER.nextLine().trim().toUpperCase();
+
+        if (input.isEmpty()) {
+            return null;
+        }
+
+        return switch (input) {
+            case "QUEEN" -> ChessPiece.PieceType.QUEEN;
+            case "ROOK" -> ChessPiece.PieceType.ROOK;
+            case "BISHOP" -> ChessPiece.PieceType.BISHOP;
+            case "KNIGHT" -> ChessPiece.PieceType.KNIGHT;
+            default -> throw new IllegalArgumentException("Invalid promotion piece");
+        };
     }
 
     private static void resetGameplayState() {
@@ -392,6 +462,11 @@ public class Main {
         }
     }
 
+    public static void handleSocketClosed() {
+        System.out.println("Connection closed. Returning to logged-in menu.");
+        resetGameplayState();
+    }
+
     private static void drawBoard(boolean isWhitePerspective) {
         if (currentGame == null) {
             System.out.println("No game loaded.");
@@ -405,7 +480,7 @@ public class Main {
             System.out.print(displayRow + " ");
 
             for (int col = 0; col < 8; col++) {
-                int boardRow = isWhitePerspective ? row : 7 - row;
+                int boardRow = isWhitePerspective ? 7 - row : row;
                 int boardCol = isWhitePerspective ? col : 7 - col;
 
                 ChessPiece piece = board.getPiece(new ChessPosition(boardRow + 1, boardCol + 1));

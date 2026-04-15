@@ -45,6 +45,9 @@ public class Server {
 
     private void registerWebSocketEndpoint() {
         app.ws("/ws", ws -> {
+            ws.onConnect(ctx -> {
+                ctx.session.setIdleTimeout(java.time.Duration.ofMinutes(5));
+            });
             ws.onMessage(webSocketHandler::onMessage);
             ws.onClose(webSocketHandler::onClose);
         });
