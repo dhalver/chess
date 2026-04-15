@@ -106,13 +106,36 @@ public class WebSocketHandler {
             return;
         }
 
-        connections.remove(command.getGameID(), auth.username());
+        String username = auth.username();
+        GameData updatedGame = game;
+
+        if (username.equals(game.whiteUsername())) {
+            updatedGame = new GameData(
+                    game.gameID(),
+                    null,
+                    game.blackUsername(),
+                    game.gameName(),
+                    game.game()
+            );
+            dataAccess.updateGame(updatedGame);
+        } else if (username.equals(game.blackUsername())) {
+            updatedGame = new GameData(
+                    game.gameID(),
+                    game.whiteUsername(),
+                    null,
+                    game.gameName(),
+                    game.game()
+            );
+            dataAccess.updateGame(updatedGame);
+        }
+
+        connections.remove(command.getGameID(), username);
 
         ServerMessage notification = new ServerMessage(
                 ServerMessage.ServerMessageType.NOTIFICATION,
                 null,
                 null,
-                auth.username() + " has left the game"
+                username + " has left the game"
         );
 
         connections.broadcast(
