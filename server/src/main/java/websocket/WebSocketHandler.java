@@ -33,7 +33,7 @@ public class WebSocketHandler {
                 case CONNECT -> connect(ctx, command);
                 case LEAVE -> leave(ctx, command);
                 case RESIGN -> resign(ctx, command);
-                case MAKE_MOVE -> sendError(ctx, "Error: MAKE_MOVE not implemented yet.");
+                case MAKE_MOVE -> makeMove(ctx, command);
             }
 
         } catch (Exception e) {
@@ -165,5 +165,62 @@ public class WebSocketHandler {
                 null
         );
         ctx.send(GSON.toJson(error));
+    }
+
+    private void makeMove(WsContext ctx, UserGameCommand command) throws DataAccessException {
+        AuthData auth = dataAccess.getAuth(command.getAuthToken());
+        if (auth == null) {
+            sendError(ctx, "Error: invalid auth token");
+            return;
+        }
+
+        GameData game = dataAccess.getGame(command.getGameID());
+        if (game == null) {
+            sendError(ctx, "Error: invalid game id");
+            return;
+        }
+
+        if (game.game().isGameOver()) {
+            sendError(ctx, "Error: game is already over");
+            return;
+        }
+
+        boolean isPlayer =
+                auth.username().equals(game.whiteUsername()) ||
+                        auth.username().equals(game.blackUsername());
+
+        if (!isPlayer) {
+            sendError(ctx, "Error: observers cannot make moves");
+            return;
+        }
+
+        try {
+            game.game().makeMove(command.getMove());
+        } catch (Exception e) {
+            sendError(ctx, "Error: invalid move");
+            return;
+        }
+
+        dataAccess.updateGame(game);
+
+        ServerMessage loadGame = new ServerMessage(
+                ServerMessage.ServerMessageType.LOAD_GAME,
+                game.game(),
+                null,
+                null
+        );
+
+        CONNECTIONS.broadcast(command.getGameID(), GSON.toJson(loadGame));
+
+        String notificationText = auth.username() + " made a move";
+
+        ServerMessage notification = new ServerMessage(
+                ServerMessage.ServerMessageType.NOTIFICATION,
+                null,
+                null,
+                notificationText
+        );
+
+        CONNECTIONS.broadcast(command.getGameID(), GSON.toJson(notification));
     }
 }
