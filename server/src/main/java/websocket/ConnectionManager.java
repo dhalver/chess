@@ -2,11 +2,13 @@ package websocket;
 
 import io.javalin.websocket.WsContext;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionManager {
-    private final Map<Integer, Map<String, WsContext>> connections = new ConcurrentHashMap<>();
+    private final Map<Integer, Map<String, WsContext>> connections =
+            new ConcurrentHashMap<>();
 
     public void add(int gameID, String username, WsContext ctx) {
         Map<String, WsContext> gameConnections =
@@ -16,7 +18,9 @@ public class ConnectionManager {
 
         if (oldCtx != null && oldCtx != ctx) {
             try {
-                oldCtx.session.close();
+                if (oldCtx.session.isOpen()) {
+                    oldCtx.session.close();
+                }
             } catch (Exception ignored) {
             }
         }
@@ -32,6 +36,29 @@ public class ConnectionManager {
         }
     }
 
+    public void remove(WsContext ctx) {
+        for (var gameEntry : connections.entrySet()) {
+            Integer gameID = gameEntry.getKey();
+            Map<String, WsContext> gameConnections = gameEntry.getValue();
+
+            String usernameToRemove = null;
+            for (var userEntry : gameConnections.entrySet()) {
+                if (userEntry.getValue() == ctx) {
+                    usernameToRemove = userEntry.getKey();
+                    break;
+                }
+            }
+
+            if (usernameToRemove != null) {
+                gameConnections.remove(usernameToRemove);
+                if (gameConnections.isEmpty()) {
+                    connections.remove(gameID);
+                }
+                return;
+            }
+        }
+    }
+
     public void clear() {
         connections.clear();
     }
@@ -42,15 +69,20 @@ public class ConnectionManager {
             return;
         }
 
-        for (var entry : gameConnections.entrySet()) {
+        Map<String, WsContext> snapshot = new HashMap<>(gameConnections);
+
+        for (var entry : snapshot.entrySet()) {
+            String username = entry.getKey();
+            WsContext ctx = entry.getValue();
+
             try {
-                if (entry.getValue().session.isOpen()) {
-                    entry.getValue().send(message);
+                if (ctx.session.isOpen()) {
+                    ctx.send(message);
                 } else {
-                    remove(gameID, entry.getKey());
+                    remove(gameID, username);
                 }
             } catch (Exception ignored) {
-                remove(gameID, entry.getKey());
+                remove(gameID, username);
             }
         }
     }
@@ -61,16 +93,21 @@ public class ConnectionManager {
             return;
         }
 
-        for (var entry : gameConnections.entrySet()) {
-            if (!entry.getKey().equals(excludedUsername)) {
+        Map<String, WsContext> snapshot = new HashMap<>(gameConnections);
+
+        for (var entry : snapshot.entrySet()) {
+            String username = entry.getKey();
+            WsContext ctx = entry.getValue();
+
+            if (!username.equals(excludedUsername)) {
                 try {
-                    if (entry.getValue().session.isOpen()) {
-                        entry.getValue().send(message);
+                    if (ctx.session.isOpen()) {
+                        ctx.send(message);
                     } else {
-                        remove(gameID, entry.getKey());
+                        remove(gameID, username);
                     }
                 } catch (Exception ignored) {
-                    remove(gameID, entry.getKey());
+                    remove(gameID, username);
                 }
             }
         }

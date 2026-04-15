@@ -33,7 +33,7 @@ public class Server {
         }
 
         this.gson = new Gson();
-        this.webSocketHandler = new WebSocketHandler();
+        this.webSocketHandler = new WebSocketHandler(dataAccess);
 
         this.app = Javalin.create(config -> config.staticFiles.add("web"));
 
@@ -46,6 +46,7 @@ public class Server {
     private void registerWebSocketEndpoint() {
         app.ws("/ws", ws -> {
             ws.onMessage(webSocketHandler::onMessage);
+            ws.onClose(webSocketHandler::onClose);
         });
     }
 
@@ -225,6 +226,17 @@ public class Server {
 
     public record CreateUserRequest(String username, String password, String email) { }
     public record LoginRequest(String username, String password) { }
+    public record CreateGameRequest(String gameName) { }
+    public record JoinGameRequest(String playerColor, Integer gameID) { }
     public record AuthResponse(String username, String authToken) { }
+    public record CreateGameResponse(Integer gameID) { }
+    public record GameSummary(
+            Integer gameID,
+            String whiteUsername,
+            String blackUsername,
+            String gameName
+    ) { }
+    public record ListGamesResponse(List<GameSummary> games) { }
+    public record ErrorResponse(String message) { }
     public record EmptyResponse() { }
 }

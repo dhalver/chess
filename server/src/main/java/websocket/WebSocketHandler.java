@@ -4,7 +4,6 @@ import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.DataAccess;
 import dataaccess.DataAccessException;
-import dataaccess.MySqlDataAccess;
 import io.javalin.websocket.WsContext;
 import io.javalin.websocket.WsMessageContext;
 import model.AuthData;
@@ -14,32 +13,38 @@ import websocket.messages.ServerMessage;
 
 public class WebSocketHandler {
     private static final Gson GSON = new Gson();
-    private final ConnectionManager connections = new ConnectionManager();
 
+    private final ConnectionManager connections = new ConnectionManager();
     private final DataAccess dataAccess;
 
-    public WebSocketHandler() {
-        try {
-            this.dataAccess = new MySqlDataAccess();
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Failed to initialize websocket data access", e);
-        }
+    public WebSocketHandler(DataAccess dataAccess) {
+        this.dataAccess = dataAccess;
     }
 
     public void onMessage(WsMessageContext ctx) {
         try {
             UserGameCommand command = GSON.fromJson(ctx.message(), UserGameCommand.class);
 
+            if (command == null || command.getCommandType() == null) {
+                sendError(ctx, "Error: bad command");
+                return;
+            }
+
             switch (command.getCommandType()) {
                 case CONNECT -> connect(ctx, command);
                 case LEAVE -> leave(ctx, command);
                 case RESIGN -> resign(ctx, command);
                 case MAKE_MOVE -> makeMove(ctx, command);
+                default -> sendError(ctx, "Error: bad command");
             }
 
         } catch (Exception e) {
             sendError(ctx, "Error: " + e.getMessage());
         }
+    }
+
+    public void onClose(WsContext ctx) {
+        connections.remove(ctx);
     }
 
     private void connect(WsContext ctx, UserGameCommand command) throws DataAccessException {
@@ -159,7 +164,6 @@ public class WebSocketHandler {
     }
 
     private void makeMove(WsContext ctx, UserGameCommand command) throws DataAccessException {
-
         AuthData auth = dataAccess.getAuth(command.getAuthToken());
         if (auth == null) {
             sendError(ctx, "Error: invalid auth token");
@@ -187,8 +191,8 @@ public class WebSocketHandler {
 
         boolean isWhiteTurn = game.game().getTeamTurn() == ChessGame.TeamColor.WHITE;
         boolean isCorrectTurn =
-                (isWhiteTurn && auth.username().equals(game.whiteUsername())) ||
-                        (!isWhiteTurn && auth.username().equals(game.blackUsername()));
+                (isWhiteTurn && auth.username().equals(game.whiteUsername()))
+                        || (!isWhiteTurn && auth.username().equals(game.blackUsername()));
 
         if (!isCorrectTurn) {
             sendError(ctx, "Error: not your turn");
@@ -201,12 +205,19 @@ public class WebSocketHandler {
         }
 
         try {
-            System.out.println("before game.makeMove");
             game.game().makeMove(command.getMove());
-            System.out.println("after game.makeMove");
         } catch (Exception e) {
             sendError(ctx, "Error: invalid move");
             return;
+        }
+
+        ChessGame.TeamColor currentTurn = game.game().getTeamTurn();
+        String currentPlayerUsername = currentTurn == ChessGame.TeamColor.WHITE
+                ? game.whiteUsername()
+                : game.blackUsername();
+
+        if (game.game().isInCheckmate(currentTurn) || game.game().isInStalemate(currentTurn)) {
+            game.game().setGameOver(true);
         }
 
         dataAccess.updateGame(game);
@@ -217,26 +228,50 @@ public class WebSocketHandler {
                 null,
                 null
         );
-
         connections.broadcast(command.getGameID(), GSON.toJson(loadGame));
 
-        String notificationText = auth.username() + " moved from "
+        String moveNotificationText = auth.username() + " moved from "
                 + command.getMove().getStartPosition()
                 + " to "
                 + command.getMove().getEndPosition();
 
-        ServerMessage notification = new ServerMessage(
+        ServerMessage moveNotification = new ServerMessage(
                 ServerMessage.ServerMessageType.NOTIFICATION,
                 null,
                 null,
-                notificationText
+                moveNotificationText
         );
-
         connections.broadcastExcept(
                 command.getGameID(),
                 auth.username(),
-                GSON.toJson(notification)
+                GSON.toJson(moveNotification)
         );
+
+        if (game.game().isInCheckmate(currentTurn)) {
+            ServerMessage checkmateNotification = new ServerMessage(
+                    ServerMessage.ServerMessageType.NOTIFICATION,
+                    null,
+                    null,
+                    currentPlayerUsername + " is in checkmate"
+            );
+            connections.broadcast(command.getGameID(), GSON.toJson(checkmateNotification));
+        } else if (game.game().isInStalemate(currentTurn)) {
+            ServerMessage stalemateNotification = new ServerMessage(
+                    ServerMessage.ServerMessageType.NOTIFICATION,
+                    null,
+                    null,
+                    "Stalemate"
+            );
+            connections.broadcast(command.getGameID(), GSON.toJson(stalemateNotification));
+        } else if (game.game().isInCheck(currentTurn)) {
+            ServerMessage checkNotification = new ServerMessage(
+                    ServerMessage.ServerMessageType.NOTIFICATION,
+                    null,
+                    null,
+                    currentPlayerUsername + " is in check"
+            );
+            connections.broadcast(command.getGameID(), GSON.toJson(checkNotification));
+        }
     }
 
     private void sendError(WsContext ctx, String message) {
